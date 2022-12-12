@@ -17,7 +17,7 @@ const modeRes1 = mode==="dev"?"localhost":"zhenil-next.vercel.app"
 const modeRes2 = mode==="dev"?"localhost":"okki.kz"
 const helmet = require('helmet');
 const {v4: uuidv4} = require('uuid');
-// console.log(uuidv4());
+console.log(uuidv4());
 //
 
 
@@ -40,19 +40,19 @@ var corsOptions = {
     optionsSuccessStatus: 200,
     credentials:true
 }
-app.use((req, res, next) => {
-    let validHost = IpHostList; // Put your IP whitelist in this array
+// app.use((req, res, next) => {
+//     let validHost = IpHostList; // Put your IP whitelist in this array
     
-    if(validHost.includes(req.hostname)){
-        console.log("Host ok");
-        next();
-    } else{
-        console.log("Bad host: " + req.hostname);
-        // const err = new Error("Bad host: " + req.connection.remoteAddress);
-        // next(err);
-        res.status(401).send("<h1>Access denied!</h1><p>Please exit this page!</p>")
-    }
-})
+//     if(validHost.includes(req.hostname)){
+//         console.log("Host ok");
+//         next();
+//     } else{
+//         console.log("Bad host: " + req.hostname);
+//         // const err = new Error("Bad host: " + req.connection.remoteAddress);
+//         // next(err);
+//         res.status(401).send("<h1>Access denied!</h1><p>Please exit this page!</p>")
+//     }
+// })
 app.use(express.json())
 app.use(express.urlencoded({extended:true}))
 
