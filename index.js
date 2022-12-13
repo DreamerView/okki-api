@@ -20,11 +20,7 @@ console.log(uuidv4());
 //
 
 var corsOptions = {
-    origin: function (origin, callback) {
-        if (whitelist.indexOf(origin) !== -1) {
-          callback(null, true)
-        } 
-    },
+    origin: "*",
     allowedHeaders: 'Content-Type, Authorization',
     methods: "GET,POST",
     optionsSuccessStatus: 200,
