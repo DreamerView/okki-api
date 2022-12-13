@@ -3,7 +3,7 @@ require('dotenv').config()
 const mode = process.env.MODE; //(Choose: pro/dev) pro - producation or dev - development
 const PORT = process.env.PORT || 3001;
 const connectSocket = "http://localhost:3000";
-const IpHostList = mode === "dev"?['localhost']:['okki.kz','zhenil-next.vercel.app'];
+const IpHostList = mode === "dev"?['localhost']:['okki.kz','zhenil-next.vercel.app','app.okki.kz'];
 const whitelist = mode === "dev"?['http://localhost:3000','http://localhost:3001']:['https://okki.kz','https://zhenil-next.vercel.app'];
 //
 
