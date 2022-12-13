@@ -8,7 +8,7 @@ const knex = require('knex')({
       port : process.env.DATABASE_PORT,
       user : process.env.DATABASE_USER,
       password : process.env.DATABASE_PASSWORD,
-      database : 'users',
+      database : process.env.DATABASE_NAME_USERS,
     }
 });
 
@@ -35,11 +35,11 @@ const emailForm = ({title,password}) => {return(`
 `)};
 const nodemailer = require('nodemailer');
 let transporter = nodemailer.createTransport({
-    host: 'w3.okki.kz',
-    port: 465,
+    host: process.env.SMTP_HOST,
+    port: process.env.SMTP_PORT,
     auth: {
-        user: "support@w3.okki.kz",
-        pass: "!M2raumOp"
+        user: process.env.SMTP_AUTH_USER,
+        pass: process.env.SMTP_AUTH_PASS
     },
 })
 const AesEncryption = require('aes-encryption');
