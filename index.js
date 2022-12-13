@@ -14,29 +14,14 @@ const http = require('http');
 const {Server} = require("socket.io");
 const server = http.createServer(app);
 const cors = require('cors');
-const modeRes1 = mode==="dev"?"localhost":"zhenil-next.vercel.app"
-const modeRes2 = mode==="dev"?"localhost":"okki.kz"
 const helmet = require('helmet');
 const {v4: uuidv4} = require('uuid');
 console.log(uuidv4());
 //
 
-
-// const generatePassword = () => {
-//     var length = 64,
-//         charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-//         retVal = "";
-//     for (var i = 0, n = charset.length; i < length; ++i) {
-//         retVal += charset.charAt(Math.floor(Math.random() * n));
-//     }
-//     return retVal;
-// };
-
-// console.log(generatePassword());
-
 var corsOptions = {
     origin: function (origin, callback) {
-        if (whitelist.indexOf(origin) !== -1 || !origin) {
+        if (whitelist.indexOf(origin) !== -1) {
           callback(null, true)
         } 
     },
