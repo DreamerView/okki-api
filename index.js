@@ -20,7 +20,7 @@ console.log(uuidv4());
 //
 
 var corsOptions = {
-    origin: "*",
+    origin: "https://zhenil-next.vercel.app",
     allowedHeaders: 'Content-Type, Authorization',
     methods: "GET,POST",
     optionsSuccessStatus: 200,
