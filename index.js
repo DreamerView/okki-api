@@ -4,7 +4,7 @@ const mode = process.env.MODE; //(Choose: pro/dev) pro - producation or dev - de
 const PORT = process.env.PORT || 3001;
 const connectSocket = "http://localhost:3000";
 const IpHostList = mode === "dev"?['localhost']:['okki.kz','zhenil-next.vercel.app'];
-const allowedOrigins = mode === "dev"?['http://localhost:3000','http://localhost:3001']:['okki.kz','zhenil-next.vercel.app'];
+const allowedOrigins = mode === "dev"?['http://localhost:3000','http://localhost:3001']:['https://okki.kz','https://zhenil-next.vercel.app'];
 //
 
 // Library 
