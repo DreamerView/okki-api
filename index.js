@@ -4,6 +4,7 @@ const mode = process.env.MODE; //(Choose: pro/dev) pro - producation or dev - de
 const PORT = process.env.PORT || 3001;
 const connectSocket = "http://localhost:3000";
 const IpHostList = mode === "dev"?['localhost']:['okki.kz','zhenil-next.vercel.app'];
+const allowedOrigins = mode === "dev"?['http://localhost:3000','http://localhost:3001']:['okki.kz','zhenil-next.vercel.app'];
 //
 
 // Library 
@@ -34,15 +35,17 @@ console.log(uuidv4());
 // console.log(generatePassword());
 
 var corsOptions = {
-    // origin: connectSocket,
-    allowedHeaders: 'Content-Type,Authorization,Accept',
+    allowedHeaders: 'Content-Type, Authorization',
     methods: "GET,POST",
     optionsSuccessStatus: 200,
     credentials:true
 }
 app.use((req, res, next) => {
     let validHost = IpHostList; // Put your IP whitelist in this array
-    
+    const origin = req.headers.origin;
+    if (allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
     if(validHost.includes(req.hostname)){
         console.log("Host ok");
         next();
