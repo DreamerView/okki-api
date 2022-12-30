@@ -1,9 +1,10 @@
+/*jshint esversion: 6 */
+
 // Configuration
-require('dotenv').config()
+require('dotenv').config();
 const mode = process.env.MODE; //(Choose: pro/dev) pro - producation or dev - development
 const PORT = process.env.PORT || 3001;
 const connectSocket = "http://localhost:3000";
-const IpHostList = mode === "dev"?['localhost']:['okki.kz','zhenil-next.vercel.app','app.okki.kz'];
 const whitelist = mode === "dev"?['http://localhost:3000','http://localhost:3001']:['https://okki.kz','https://zhenil-next.vercel.app'];
 //
 
@@ -15,41 +16,49 @@ const {Server} = require("socket.io");
 const server = http.createServer(app);
 const cors = require('cors');
 const helmet = require('helmet');
-const {v4: uuidv4} = require('uuid');
-console.log(uuidv4());
 //
 
-var corsOptions = {
+const corsOptions = {
     origin: whitelist,
-    allowedHeaders: 'Content-Type, Authorization',
-    methods: "GET,POST",
+    allowedHeaders: 'Content-Type, Authorization,WWW-Authenticate,Accept,Origin',
+    methods: "GET,POST,DELETE",
     optionsSuccessStatus: 200,
     credentials:true
-}
-app.use((req, res, next) => {
-    let validHost = IpHostList; // Put your IP whitelist in this array
-    // const origin = req.headers.origin;
-    // if (allowedOrigins.includes(origin)) {
-    //     res.setHeader('Access-Control-Allow-Origin', origin);
-    // }
-    if(validHost.includes(req.hostname)){
-        console.log("Host ok");
-        next();
-    } else{
-        console.log("Bad host: " + req.hostname);
-        // const err = new Error("Bad host: " + req.connection.remoteAddress);
-        // next(err);
-        res.status(401).send("<h1>Access denied!</h1><p>Please exit this page!</p>")
-    }
-})
-app.use(express.json())
-app.use(express.urlencoded({extended:true}))
-
+};
+app.use(express.static('public')); 
+app.use('/images', express.static('images'));
 app.use(cors(corsOptions));
 app.use(helmet());
 app.disable('x-powered-by');
+app.use((req, res, next) => {
+    const www = req.headers['www-authenticate'];
+    const originStatus = req.get('origin');
+    const modeStatus = mode === "dev"?"http":"https";
+    const httpStatus = req.protocol;
+    if(originStatus!==undefined) {
+        if (!www&&httpStatus===modeStatus&&originStatus.includes(whitelist)) {
+            return res.sendStatus(403);
+        }
+        else {
+            if(www===process.env.authHeader) {
+                next();
+            } else {
+                console.log('\x1b[31m%s\x1b[0m',"Someone tried to fetch backend");
+                return res.sendStatus(401);
+            }
+        }
+    } else {
+        res.sendStatus(403);
+    }
+});
+app.use(express.json());
+app.use(express.urlencoded({extended:true}));
+
+
 
 // Router start
+const authLogin = require('./pages/user/login');
+app.use(authLogin);
 const database = require('./pages/user/index');
 app.use(database);
 
@@ -57,14 +66,10 @@ app.use(database);
 
 app.route('/').get((req, res) => {
     // const s = require("./pages/user/index.js")
-    res.send(`
-        <h1>Welcome to Okki Api Server</h1>
-        `);
+    res.send(`<h1>Welcome to Okki Api Server</h1>`);
 });
 app.route('/ws').get((req, res) => {
-    res.send(`
-        <h1>Welcome to Okki WebSocket</h1>
-        `);
+    res.send(`<h1>Welcome to Okki WebSocket</h1>`);
 });
 
 const io = new Server(server,{
@@ -75,32 +80,33 @@ const io = new Server(server,{
         credentials: true
     },
     allowEIO3: true
-})
+});
 
 
 io.of("/ws").on('connection',socket=>{
     const rooms = socket.handshake.query.c;
     if(rooms!==undefined){
-        socket.join(rooms)
+        socket.join(rooms);
         socket.on("connectToRoom",(e)=>{
-            console.log("Room name is "+e.text)
+            console.log("Room name is "+e.text);
             socket.broadcast.to(rooms).emit("get_data",e);
-        })
+        });
         socket.on("send_qustion",e=>{
             socket.broadcast.to(rooms).emit("get_question",e);
-        })
+        });
     }
 });
 
-app.use((req, res, next) => {
-    res.status(404).send("<h1>404 Error</h1><p>Sorry can't find that!</p>")
+app.use((req, res,next) => {
+    return res.sendStatus(404);
 });
 
-app.use((err, req, res, next) => {
-    console.error(err.stack)
-    res.status(500).send('<h1>500 Error</h1><p>Something broke!</p>')
+app.use((err, req, res,next) => {
+    console.log('\x1b[31m%s\x1b[0m',"[500 Error] New error on backend");
+    console.log(err);
+    return res.sendStatus(500);
 });
 
 server.listen(PORT,()=>{
-    console.log("Server is running on port "+PORT);
-})
+    console.log('\x1b[33m%s\x1b[0m',"Server is running on port "+PORT);
+});
