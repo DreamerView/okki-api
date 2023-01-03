@@ -310,7 +310,7 @@ router.post('/register-id',async(req,res)=>{
         const email = aes.decrypt(req.body.email);
         const password = aes.decrypt(req.body.password);
         const client = aes.decrypt(req.body.client);
-        const start = await knex.select("email").where({email:email}).from("users");
+        const start = await knex.select("email").where({email:email,client:client}).from("users");
         if(start.length == 0) {
             const {v4: uuidv4} = require('uuid');
             const data = String(Date.now());
