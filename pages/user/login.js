@@ -57,9 +57,9 @@ const aes256 = async({key,method,text}) => {
     chipher.setSecretKey(key);
     const result = text;
     if(method==="enc") {
-        return await chipher.encrypt(result);
+        return chipher.encrypt(result);
     } else if(method==="dec") {
-        return await chipher.decrypt(result);
+        return chipher.decrypt(result);
     }
 };
 
