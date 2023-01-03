@@ -90,8 +90,8 @@ router.post('/signin-with-socialnetwork',async(req,res)=>{
         const all = aes.decrypt(req.body.name);
         const image = aes.decrypt(req.body.image);
         const client = aes.decrypt(req.body.client);
-        const name = all.split(" ")[0]===undefined||all.split(" ")[0]===null?null:all.split(" ")[0];
-        const surname = all.split(" ")[1]===undefined||all.split(" ")[1]===null?null:all.split(" ")[1];
+        const name = all.split(" ")[0]===undefined||all.split(" ")[0]===null?" ":all.split(" ")[0];
+        const surname = all.split(" ")[1]===undefined||all.split(" ")[1]===null?" ":all.split(" ")[1];
         console.log(email+" "+" "+image+" "+client)
         if(email!==undefined) {
             if(social.includes(client)) {
