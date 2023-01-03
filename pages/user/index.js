@@ -61,17 +61,19 @@ const authToken = (req,res,next) => {
 router.get('/get-data',authToken,async(req,res)=>{
     try {
         const uuid = req.uid.uuid;
-        let cryptoKey;
-        const getCrypto = await knex.select('keyCrypto').from("usersKey").where({uuid:uuid});
-        getCrypto.map(result=>cryptoKey=result['keyCrypto']);
-        let select_array = req.query.select!==undefined?req.query.select:"";
-        const getDatabase = await knex.select("name","surname","data","avatar","login","client").from("users").where("uuid",uuid);
-        let nameUser,surnameUser,dataUser,avatarUser,loginUser,clientUser;
-        getDatabase.map(result=>{nameUser=aes256({key:cryptoKey,method:"dec",text:result['name']});surnameUser=aes256({key:cryptoKey,method:"dec",text:result['surname']});dataUser=aes256({key:cryptoKey,method:"dec",text:result['data']});avatarUser=result['avatar'];clientUser=result['client'];loginUser=aes256({key:cryptoKey,method:"dec",text:result['login']})})
-        const httpCheck = req.hostname==='localhost'?'http://':"https://";
-        const portCheck = req.hostname==='localhost'?':'+process.env.PORT:"";
-        const avatarResult = clientUser==="okki"?httpCheck+req.hostname+portCheck+avatarUser:avatarUser;
-        res.json({name:aes.encrypt(nameUser),surname:aes.encrypt(surnameUser),data:aes.encrypt(dataUser),avatar:aes.encrypt(avatarResult),login:aes.encrypt(loginUser)});
+        if(uuid!==undefined || uuid!==null) {
+            let cryptoKey;
+            const getCrypto = await knex.select('keyCrypto').from("usersKey").where({uuid:uuid});
+            getCrypto.map(result=>cryptoKey=result['keyCrypto']);
+            let select_array = req.query.select!==undefined?req.query.select:"";
+            const getDatabase = await knex.select("name","surname","data","avatar","login","client").from("users").where("uuid",uuid);
+            let nameUser,surnameUser,dataUser,avatarUser,loginUser,clientUser;
+            getDatabase.map(result=>{nameUser=aes256({key:cryptoKey,method:"dec",text:result['name']});surnameUser=aes256({key:cryptoKey,method:"dec",text:result['surname']});dataUser=aes256({key:cryptoKey,method:"dec",text:result['data']});avatarUser=result['avatar'];clientUser=result['client'];loginUser=aes256({key:cryptoKey,method:"dec",text:result['login']})})
+            const httpCheck = req.hostname==='localhost'?'http://':"https://";
+            const portCheck = req.hostname==='localhost'?':'+process.env.PORT:"";
+            const avatarResult = clientUser==="okki"?httpCheck+req.hostname+portCheck+avatarUser:avatarUser;
+            res.json({name:aes.encrypt(nameUser),surname:aes.encrypt(surnameUser),data:aes.encrypt(dataUser),avatar:aes.encrypt(avatarResult),login:aes.encrypt(loginUser)});
+        } else return res.sendStatus(406);
     } catch(e) {
         console.log('\x1b[31m%s\x1b[0m',"/get-data - Mistake, mistake is ");
         console.log(e);
