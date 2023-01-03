@@ -96,7 +96,7 @@ router.post('/signin-with-socialnetwork',async(req,res)=>{
         if(email!==undefined) {
             if(social.includes(client)) {
                 const getClient = await knex.select("uuid").where({email:email,client:client}).from("users");
-                if(JSON.stringify(getClient)==="[]") {
+                if(getClient.length==0) {
                     const {v4: uuidv4} = require('uuid');
                     const data = String(Date.now());
                     const uuid = data+"-"+uuidv4();
