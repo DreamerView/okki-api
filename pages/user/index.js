@@ -31,14 +31,16 @@ const AesEncryption = require('aes-encryption');
 const aes = new AesEncryption();
 aes.setSecretKey(process.env.AES_KEY);
 
-const authToken = (req,res,next) => {
+const authToken = async(req,res,next) => {
     const authHeader = req.headers['authorization'];
     const getToken = authHeader && authHeader.split(" ")[1];
     const token = aes.decrypt(getToken);
     if(token==null) return res.sendStatus(409);
-    jwt.verify(token,process.env.ACCESS_TOKEN,(err,uid)=>{
+    jwt.verify(token,process.env.ACCESS_TOKEN,async(err,uid)=>{
         if(err) return res.sendStatus(406);
         req.uid = uid;
+        const getToken = await knex.select("accessToken").where({uuid:req.uid.uuid}).from("usersToken");
+        if(JSON.stringify(getToken)==="[]") return res.sendStatus(406);
         next();
     });
 };
