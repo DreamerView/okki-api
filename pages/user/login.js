@@ -90,8 +90,8 @@ router.post('/signin-with-socialnetwork',async(req,res)=>{
         const all = aes.decrypt(req.body.name);
         const image = aes.decrypt(req.body.image);
         const client = aes.decrypt(req.body.client);
-        const name = all.split(" ")[0];
-        const surname = all.split(" ")[1];
+        const name = all.split(" ")[0]===undefined||all.split(" ")[0]===null?null:all.split(" ")[0];
+        const surname = all.split(" ")[1]===undefined||all.split(" ")[1]===null?null:all.split(" ")[1];
         console.log(email+" "+" "+image+" "+client)
         if(email!==undefined) {
             if(social.includes(client)) {
@@ -111,7 +111,7 @@ router.post('/signin-with-socialnetwork',async(req,res)=>{
                     const loginResult = aes256({key:keyCrypto,method:"enc",text:loginUser});
                     const nameResult = aes256({key:keyCrypto,method:"enc",text:name});
                     const surnameResult = aes256({key:keyCrypto,method:"enc",text:surname});
-                    console.log(loginUser+" "+name+" "+surname);
+                    // console.log(loginUser+" "+name+" "+surname);
                     const usersStart = await knex('users').insert({uuid:uuid,login:loginResult,email:email,password:null,name:nameResult,surname:surnameResult,data:data,avatar:image,client:client});
                     const cryptoStart = await knex('usersKey').insert({uuid:uuid,keyCrypto:keyCrypto});
                     const tokenStart = await knex('usersToken').insert({uuid:uuid,accessToken:accessTokenGeneration,refreshToken:refreshTokenGeneration});
