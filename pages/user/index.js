@@ -68,7 +68,7 @@ router.get('/get-data',authToken,async(req,res)=>{
             let select_array = req.query.select!==undefined?req.query.select:"";
             const getDatabase = await knex.select("name","surname","data","avatar","login","client").from("users").where("uuid",uuid);
             let nameUser,surnameUser,dataUser,avatarUser,loginUser,clientUser;
-            getDatabase.map(result=>{nameUser=aes256({key:cryptoKey,method:"dec",text:result['name']});surnameUser=aes256({key:cryptoKey,method:"dec",text:result['surname']});dataUser=aes256({key:cryptoKey,method:"dec",text:result['data']});avatarUser=result['avatar'];clientUser=result['client'];loginUser=aes256({key:cryptoKey,method:"dec",text:result['login']})})
+            getDatabase.map(result=>{nameUser=aes256({key:cryptoKey,method:"dec",text:result['name']});surnameUser=aes256({key:cryptoKey,method:"dec",text:result['surname']});dataUser=result['data'];avatarUser=result['avatar'];clientUser=result['client'];loginUser=aes256({key:cryptoKey,method:"dec",text:result['login']})})
             const httpCheck = req.hostname==='localhost'?'http://':"https://";
             const portCheck = req.hostname==='localhost'?':'+process.env.PORT:"";
             const avatarResult = clientUser==="okki"?httpCheck+req.hostname+portCheck+avatarUser:avatarUser;
