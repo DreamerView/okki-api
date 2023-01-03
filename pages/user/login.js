@@ -108,9 +108,9 @@ router.post('/signin-with-socialnetwork',async(req,res)=>{
                     const loginUser = "user-"+newId;
                     const accessTokenGeneration = generateAccessToken({uuid:uuid});
                     const refreshTokenGeneration = generateRefreshToken({uuid:uuid});
+                    const usersStart = await knex('users').insert({uuid:uuid,login:aes256({key:keyCrypto,method:"enc",text:loginUser}),email:email,password:null,name:aes256({key:keyCrypto,method:"enc",text:name}),surname:aes256({key:keyCrypto,method:"enc",text:surname}),data:data,avatar:image,client:client});
                     const cryptoStart = await knex('usersKey').insert({uuid:uuid,keyCrypto:keyCrypto});
                     const tokenStart = await knex('usersToken').insert({uuid:uuid,accessToken:accessTokenGeneration,refreshToken:refreshTokenGeneration});
-                    const usersStart = await knex('users').insert({uuid:uuid,login:aes256({key:keyCrypto,method:"enc",text:loginUser}),email:email,password:null,name:aes256({key:keyCrypto,method:"enc",text:name}),surname:aes256({key:keyCrypto,method:"enc",text:surname}),data:aes256({key:keyCrypto,method:"enc",text:data}),avatar:image,client:client});
                     res.json({success:true,accessToken:aes.encrypt(accessTokenGeneration),name:aes.encrypt(name),surname:aes.encrypt(surname),avatar:aes.encrypt(image)})
                     console.log('\x1b[32m%s\x1b[0m',"№"+newId+") Registered new user "+email);
                 } else {
@@ -325,9 +325,9 @@ router.post('/register-id',async(req,res)=>{
             const loginUser = "user-"+newId;
             const accessTokenGeneration = generateAccessToken({uuid:uuid});
             const refreshTokenGeneration = generateRefreshToken({uuid:uuid});
+            const usersStart = await knex('users').insert({uuid:uuid,login:aes256({key:keyCrypto,method:"enc",text:loginUser}),email:email,password:aes256({key:keyCrypto,method:"enc",text:password}),name:aes256({key:keyCrypto,method:"enc",text:name}),surname:aes256({key:keyCrypto,method:"enc",text:surname}),data:data,avatar:"/images/unknown.webp",client:client});
             const cryptoStart = await knex('usersKey').insert({uuid:uuid,keyCrypto:keyCrypto});
             const tokenStart = await knex('usersToken').insert({uuid:uuid,accessToken:accessTokenGeneration,refreshToken:refreshTokenGeneration});
-            const usersStart = await knex('users').insert({uuid:uuid,login:aes256({key:keyCrypto,method:"enc",text:loginUser}),email:email,password:aes256({key:keyCrypto,method:"enc",text:password}),name:aes256({key:keyCrypto,method:"enc",text:name}),surname:aes256({key:keyCrypto,method:"enc",text:surname}),data:aes256({key:keyCrypto,method:"enc",text:data}),avatar:"/images/unknown.webp",client:client});
             res.json({success:true,accessToken:aes.encrypt(accessTokenGeneration)})
             console.log('\x1b[32m%s\x1b[0m',"№"+newId+") Registered new user "+email);
         } else {
