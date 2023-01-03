@@ -215,8 +215,9 @@ router.post('/forget',async(req,res)=>{
 router.post('/verify-email',async(req,res)=>{
     try {
         const uid =  aes.decrypt(req.body.email);
+        const client =  aes.decrypt(req.body.client);
         if(uid!==undefined) {
-            const start = await knex.select("email","uuid",'otp').where({email:uid}).from("users");
+            const start = await knex.select("email","uuid",'otp').where({email:uid,client:client}).from("users");
             if(start.length == 0) {
                 res.json({success:true});
             } else {
@@ -233,8 +234,9 @@ router.post('/verify-email',async(req,res)=>{
 router.post('/verify-email-otp',async(req,res)=>{
     try {
         const uid =  aes.decrypt(req.body.email);
+        const client =  aes.decrypt(req.body.client);
         if(uid!==undefined) {
-            const start = await knex.select("email","uuid",'otp').where({email:uid}).from("users");
+            const start = await knex.select("email","uuid",'otp').where({email:uid,client:client}).from("users");
             if(start.length == 0) {
                 const otp_key = generatePassword();
                 let message = {
