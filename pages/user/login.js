@@ -51,15 +51,15 @@ const AesEncryption = require('aes-encryption');
 const aes = new AesEncryption();
 aes.setSecretKey(process.env.AES_KEY);
 
-const aes256 = ({key,method,text}) => {
+const aes256 = async({key,method,text}) => {
     const chipherEncryption = require('aes-encryption');
     const chipher = new chipherEncryption();
     chipher.setSecretKey(key);
     const result = text;
     if(method==="enc") {
-        return chipher.encrypt(result);
+        return await chipher.encrypt(result);
     } else if(method==="dec") {
-        return chipher.decrypt(result);
+        return await chipher.decrypt(result);
     }
 };
 
