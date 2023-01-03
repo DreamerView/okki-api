@@ -101,14 +101,18 @@ router.post('/signin-with-socialnetwork',async(req,res)=>{
                     const data = String(Date.now());
                     const uuid = data+"-"+uuidv4();
                     const keyCrypto = require('crypto').randomBytes(32).toString('hex');
-                    const count = await knex('usersKey').count('*');
+                    const count = await knex('users').count('*');
                     let id;
                     count.map(result=>id=result['count(*)']);
                     const newId = Number(id)+1;
                     const loginUser = "user-"+newId;
                     const accessTokenGeneration = generateAccessToken({uuid:uuid});
                     const refreshTokenGeneration = generateRefreshToken({uuid:uuid});
-                    const usersStart = await knex('users').insert({uuid:uuid,login:aes256({key:keyCrypto,method:"enc",text:loginUser}),email:email,password:null,name:aes256({key:keyCrypto,method:"enc",text:name}),surname:aes256({key:keyCrypto,method:"enc",text:surname}),data:data,avatar:image,client:client});
+                    const loginResult = aes256({key:keyCrypto,method:"enc",text:loginUser});
+                    const nameResult = aes256({key:keyCrypto,method:"enc",text:name});
+                    const surnameResult = aes256({key:keyCrypto,method:"enc",text:surname});
+                    console.log(loginUser+" "+name+" "+surname);
+                    const usersStart = await knex('users').insert({uuid:uuid,login:loginResult,email:email,password:null,name:nameResult,surname:surnameResult,data:data,avatar:image,client:client});
                     const cryptoStart = await knex('usersKey').insert({uuid:uuid,keyCrypto:keyCrypto});
                     const tokenStart = await knex('usersToken').insert({uuid:uuid,accessToken:accessTokenGeneration,refreshToken:refreshTokenGeneration});
                     res.json({success:true,accessToken:aes.encrypt(accessTokenGeneration),name:aes.encrypt(name),surname:aes.encrypt(surname),avatar:aes.encrypt(image)})
@@ -318,7 +322,7 @@ router.post('/register-id',async(req,res)=>{
             const data = String(Date.now());
             const uuid = data+"-"+uuidv4();
             const keyCrypto = require('crypto').randomBytes(32).toString('hex');
-            const count = await knex('usersKey').count('*');
+            const count = await knex('users').count('*');
             let id;
             count.map(result=>id=result['count(*)']);
             const newId = Number(id)+1;
