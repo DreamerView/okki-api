@@ -144,14 +144,16 @@ router.post('/signin', async(req, res) => {
     try {
         const uid =  aes.decrypt(req.body.email);
         const pass = aes.decrypt(req.body.password);
+        const client = aes.decrypt(req.body.client);
         if(uid!==undefined) {
             let uuidReq,passwordReq,cryptoKey;
-            const getUUID = await knex.select("uuid","password").where({email:uid}).from("users");
+            const getUUID = await knex.select("uuid","password").where({email:uid,client:client}).from("users");
             if(JSON.stringify(getUUID)==="[]") res.sendStatus(404);
             else {
                 getUUID.map(result=>{uuidReq=result["uuid"];passwordReq=result["password"]});
                 const getCrypto = await knex.select("keyCrypto").where({uuid:uuidReq}).from("usersKey");
                 getCrypto.map(result=>cryptoKey=result["keyCrypto"]);
+                console.log(passwordReq)
                 const password = aes256({key:cryptoKey,method:"dec",text:passwordReq})
                 if(pass===password) {
                     const start = await knex.select("uuid","name","surname","avatar").where({email:uid,client:"okki"}).from("users");
@@ -187,8 +189,9 @@ router.post('/signin', async(req, res) => {
 router.post('/forget',async(req,res)=>{
     try {
         const uid =  aes.decrypt(req.body.email);
+        const client =  aes.decrypt(req.body.client);
         if(uid!==undefined) {
-            const start = await knex.select("email","uuid",'otp').where({email:uid}).from("users");
+            const start = await knex.select("email","uuid",'otp').where({email:uid,client:client}).from("users");
             if(start.length == 0) {
                 res.sendStatus(404); // User not found
             } else {
@@ -221,11 +224,22 @@ router.post('/verify-email',async(req,res)=>{
         const uid =  aes.decrypt(req.body.email);
         const client =  aes.decrypt(req.body.client);
         if(uid!==undefined) {
-            const start = await knex.select("email","uuid",'otp').where({email:uid,client:client}).from("users");
-            if(start.length == 0) {
-                res.json({success:true});
-            } else {
+            console.log(uid+" "+client)
+            const start = await knex.select("name","surname","avatar","uuid","email").where({email:uid,client:client}).from("users");
+            if(start.length === 0) {
                 res.sendStatus(404);
+            } else {
+                let name,surname,avatar,uuid,email;
+                start.map(e=>{name=e.name;surname=e.surname;avatar=e.avatar;uuid=e.uuid;email=e.email;});
+                const getCrypto = await knex.select("keyCrypto").where({uuid:uuid}).from("usersKey");
+                let keyCrypto;
+                getCrypto.map(e=>keyCrypto=e.keyCrypto);
+                const nameResult = aes256({key:keyCrypto,method:"dec",text:name});
+                const surnameResult = aes256({key:keyCrypto,method:"dec",text:surname});
+                const httpCheck = req.hostname==='localhost'?'http://':"https://";
+                const portCheck = req.hostname==='localhost'?':'+process.env.PORT:"";
+                const avatarResult = client==="okki"?httpCheck+req.hostname+portCheck+avatar:avatar;
+                res.json({success:true,name:aes.encrypt(nameResult),surname:aes.encrypt(surnameResult),avatar:aes.encrypt(avatarResult),email:aes.encrypt(email)});
             }
         }
     } catch(e) {
