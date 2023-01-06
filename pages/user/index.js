@@ -14,6 +14,7 @@ const knex = require('knex')({
       database : process.env.DATABASE_NAME_USERS,
     }
 });
+const IP = require('ip');
 
 const aes256 = ({key,method,text}) => {
     const chipherEncryption = require('aes-encryption');
@@ -35,12 +36,12 @@ const authToken = async(req,res,next) => {
     const authHeader = req.headers['authorization'];
     const getToken = authHeader && authHeader.split(" ")[1];
     const token = aes.decrypt(getToken);
+    const getTokens = await knex.select("accessToken").where({accessToken:token}).from("usersToken");
+    if(JSON.stringify(getTokens)==="[]") return res.sendStatus(409);
     if(token==null) return res.sendStatus(409);
     jwt.verify(token,process.env.ACCESS_TOKEN,async(err,uid)=>{
         if(err) return res.sendStatus(406);
         req.uid = uid;
-        const getToken = await knex.select("accessToken").where({uuid:req.uid.uuid}).from("usersToken");
-        if(JSON.stringify(getToken)==="[]") return res.sendStatus(406);
         next();
     });
 };
@@ -59,6 +60,24 @@ const authToken = async(req,res,next) => {
 //         return res.sendStatus(500);
 //     }
 // });
+
+router.get('/get-devices',authToken,async(req,res)=>{
+    try {
+        const uuid = req.uid.uuid;
+        // const ipAddress = IP.address();
+        // console.log(ipAddress);
+        console.log(req.ip)
+        if(uuid!==undefined || uuid!==null) {
+            const result = await knex.select('clientId','clientInfo','getTime').from(uuid+"_usersToken");
+            // console.log(result);
+            res.send({clientId:req.uid.clientId,result:result,ip:req.ip});
+        } else return res.sendStatus(406);
+    } catch(e) {
+        console.log('\x1b[31m%s\x1b[0m',"/get-devices - Mistake, mistake is ");
+        console.log(e);
+        return res.sendStatus(500);
+    }
+});
 
 router.get('/get-data',authToken,async(req,res)=>{
     try {

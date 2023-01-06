@@ -25,6 +25,7 @@ const corsOptions = {
     optionsSuccessStatus: 200,
     credentials:true
 };
+app.set('trust proxy', true)
 app.use(express.static('public')); 
 app.use('/images', express.static('images'));
 app.use(cors(corsOptions));

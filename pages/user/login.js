@@ -64,27 +64,31 @@ const aes256 = ({key,method,text}) => {
 };
 
 const generateAccessToken = (user) => {
-    return jwt.sign(user, process.env.ACCESS_TOKEN, { expiresIn: '5m' });
+    return jwt.sign(user, process.env.ACCESS_TOKEN, { expiresIn: '1m' });
 };
 const generateRefreshToken = (user) => {
     return jwt.sign(user, process.env.REFRESH_TOKEN);
 };
 
-const authToken = (req,res,next) => {
+const authToken = async(req,res,next) => {
     const authHeader = req.headers['authorization'];
     const getToken = authHeader && authHeader.split(" ")[1];
+    console.log(getToken);
     const token = aes.decrypt(getToken);
+    const getTokens = await knex.select("accessToken").where({accessToken:token}).from("usersToken");
+    if(JSON.stringify(getTokens)==="[]") return res.sendStatus(409);
     if(token==null) return res.sendStatus(409);
-
-    jwt.verify(token,process.env.ACCESS_TOKEN,(err,uid)=>{
+    jwt.verify(token,process.env.ACCESS_TOKEN,async(err,uid)=>{
         if(err) return res.sendStatus(406);
         req.uid = uid;
         next();
     });
 };
 
+
 router.post('/signin-with-socialnetwork',async(req,res)=>{
     try {
+        console.log("sds")
         const social = ['Google'];
         const email =  aes.decrypt(req.body.email);
         const all = aes.decrypt(req.body.name);
@@ -92,38 +96,65 @@ router.post('/signin-with-socialnetwork',async(req,res)=>{
         const client = aes.decrypt(req.body.client);
         const name = all.split(" ")[0]===undefined||all.split(" ")[0]===null?" ":all.split(" ")[0];
         const surname = all.split(" ")[1]===undefined||all.split(" ")[1]===null?" ":all.split(" ")[1];
-        console.log(email+" "+" "+image+" "+client)
+        const clientInfo = aes.decrypt(req.body.clientInfo);
         if(email!==undefined) {
             if(social.includes(client)) {
                 const getClient = await knex.select("uuid").where({email:email,client:client}).from("users");
-                if(getClient.length==0) {
+                console.log(email,client)
+                if(JSON.stringify(getClient)==="[]") {
                     const {v4: uuidv4} = require('uuid');
                     const data = String(Date.now());
                     const uuid = data+"-"+uuidv4();
+                    const clientId = data+"-"+uuidv4();
                     const keyCrypto = require('crypto').randomBytes(32).toString('hex');
                     const count = await knex('users').count('*');
                     let id;
                     count.map(result=>id=result['count(*)']);
                     const newId = Number(id)+1;
                     const loginUser = "user-"+newId;
-                    const accessTokenGeneration = generateAccessToken({uuid:uuid});
-                    const refreshTokenGeneration = generateRefreshToken({uuid:uuid});
+                    const accessTokenGeneration = generateAccessToken({uuid:uuid,clientId:clientId});
+                    const refreshTokenGeneration = generateRefreshToken({uuid:uuid,clientId:clientId});
                     const loginResult = aes256({key:keyCrypto,method:"enc",text:loginUser});
                     const nameResult = aes256({key:keyCrypto,method:"enc",text:name});
                     const surnameResult = aes256({key:keyCrypto,method:"enc",text:surname});
-                    // console.log(loginUser+" "+name+" "+surname);
-                    const usersStart = await knex('users').insert({uuid:uuid,login:loginResult,email:email,password:null,name:nameResult,surname:surnameResult,data:data,avatar:image,client:client});
-                    const cryptoStart = await knex('usersKey').insert({uuid:uuid,keyCrypto:keyCrypto});
-                    const tokenStart = await knex('usersToken').insert({uuid:uuid,accessToken:accessTokenGeneration,refreshToken:refreshTokenGeneration});
-                    res.json({success:true,accessToken:aes.encrypt(accessTokenGeneration),name:aes.encrypt(name),surname:aes.encrypt(surname),avatar:aes.encrypt(image)})
-                    console.log('\x1b[32m%s\x1b[0m',"№"+newId+") Registered new user "+email);
+                    const checkEmail = await knex.select("uuid").where({email:email,client:client}).from("users");
+                    // if(JSON.stringify(checkEmail)==="[]") {
+                        const usersStart = await knex('users').insert({uuid:uuid,login:loginResult,email:email,password:null,name:nameResult,surname:surnameResult,data:data,avatar:image,client:client});
+                        const cryptoStart = await knex('usersKey').insert({uuid:uuid,keyCrypto:keyCrypto});
+                        if (!(await knex.schema.hasTable(uuid+'_usersToken'))) {
+                            await knex.schema.createTable(uuid+'_usersToken', function(table) {
+                                table.string('clientId').primary();
+                                table.text('getTime');
+                                table.text('clientInfo');
+                                table.text('accessToken');
+                                table.text('refreshToken');
+                            });
+                        }
+                        const tokenStart = await knex(uuid+'_usersToken').insert({clientId:clientId,getTime:data,clientInfo:clientInfo,accessToken:accessTokenGeneration,refreshToken:refreshTokenGeneration});
+                        const tokenInsert = await knex('usersToken').insert({uuid:uuid,clientId:clientId,accessToken:accessTokenGeneration,refreshToken:refreshTokenGeneration});
+                        JSON.stringify(usersStart)!=="[]"&&res.json({success:true,accessToken:aes.encrypt(accessTokenGeneration),name:aes.encrypt(name),surname:aes.encrypt(surname),avatar:aes.encrypt(image)})
+                        console.log('\x1b[32m%s\x1b[0m',"№"+newId+") Registered new user "+email);
+                    // }
                 } else {
+                    const {v4: uuidv4} = require('uuid');
+                    const data = String(Date.now());
+                    const clientId = data+"-"+uuidv4();
                     console.log('exist')
                     let uuid;
                     getClient.map(result=>uuid=result.uuid);
-                    const AccessToken = generateAccessToken({uuid:uuid});
-                    const refreshToken = generateRefreshToken({uuid:uuid});
-                    const upd = await knex("usersToken").where({uuid:uuid}).update({accessToken:AccessToken,refreshToken:refreshToken});
+                    const AccessToken = generateAccessToken({uuid:uuid,clientId:clientId});
+                    const refreshToken = generateRefreshToken({uuid:uuid,clientId:clientId});
+                    if (!(await knex.schema.hasTable(uuid+'_usersToken'))) {
+                        await knex.schema.createTable(uuid+'_usersToken', function(table) {
+                            table.string('clientId').primary();
+                            table.text('getTime');
+                            table.text('clientInfo');
+                            table.text('accessToken');
+                            table.text('refreshToken');
+                        });
+                    }
+                    const tokenStart = await knex(uuid+'_usersToken').insert({clientId:clientId,getTime:data,clientInfo:clientInfo,accessToken:AccessToken,refreshToken:refreshToken});
+                    const tokenInsert = await knex('usersToken').insert({uuid:uuid,clientId:clientId,accessToken:AccessToken,refreshToken:refreshToken});
                     res.json({accessToken:aes.encrypt(AccessToken),name:aes.encrypt(name),surname:aes.encrypt(surname),avatar:aes.encrypt(image)});
                     console.log("Exist: "+uuid);
                     console.log("New token to "+uuid+" is: "+AccessToken);
@@ -140,11 +171,25 @@ router.post('/signin-with-socialnetwork',async(req,res)=>{
     }
 });
 
+router.get('/signout',authToken,async(req,res)=>{
+    try {
+        const first = await knex(req.uid.uuid+"_usersToken").del().where({clientId:req.uid.clientId});
+        const second = await knex('usersToken').del().where({clientId:req.uid.clientId,uuid:req.uid.uuid});
+        if(JSON.stringify(first)!=="[]"&&JSON.stringify(second)!=="[]") return res.send({accept:true});
+        else res.sendStatus(403);
+    } catch(e) {
+        console.log('\x1b[31m%s\x1b[0m',"/signout - Mistake, mistake is ");
+        console.log(e);
+        return res.sendStatus(500);
+    }
+});
+
 router.post('/signin', async(req, res) => {
     try {
         const uid =  aes.decrypt(req.body.email);
         const pass = aes.decrypt(req.body.password);
         const client = aes.decrypt(req.body.client);
+        const clientInfo = aes.decrypt(req.body.clientInfo);
         if(uid!==undefined) {
             let uuidReq,passwordReq,cryptoKey;
             const getUUID = await knex.select("uuid","password").where({email:uid,client:client}).from("users");
@@ -162,13 +207,26 @@ router.post('/signin', async(req, res) => {
                         res.sendStatus(404);
                     } else {
                         start.map(async(result)=>{
-                            const AccessToken = generateAccessToken({uuid:result.uuid});
-                            const refreshToken = generateRefreshToken({uuid:result.uuid});
-                            const upd = await knex("usersToken").where({uuid:result.uuid}).update({accessToken:AccessToken,refreshToken:refreshToken});
+                            const {v4: uuidv4} = require('uuid');
+                            const data = String(Date.now());
+                            const clientId = data+"-"+uuidv4();
+                            const AccessToken = generateAccessToken({uuid:result.uuid,clientId:clientId});
+                            const refreshToken = generateRefreshToken({uuid:result.uuid,clientId:clientId});
                             const avatarUser = result.avatar;
                             const httpCheck = req.hostname==='localhost'?'http://':"https://";
                             const portCheck = req.hostname==='localhost'?':'+process.env.PORT:"";
                             const avatarResult = httpCheck+req.hostname+portCheck+avatarUser;
+                            if (!(await knex.schema.hasTable(result.uuid+'_usersToken'))) {
+                                await knex.schema.createTable(result.uuid+'_usersToken', function(table) {
+                                    table.string('clientId').primary();
+                                    table.text('getTime');
+                                    table.text('clientInfo');
+                                    table.text('accessToken');
+                                    table.text('refreshToken');
+                                });
+                            }
+                            const tokenStart = await knex(result.uuid+'_usersToken').insert({clientId:clientId,getTime:data,clientInfo:clientInfo,accessToken:AccessToken,refreshToken:refreshToken});
+                            const tokenInsert = await knex('usersToken').insert({uuid:result.uuid,accessToken:AccessToken,refreshToken:refreshToken,clientId:clientId});
                             res.json({accessToken:aes.encrypt(AccessToken),name:aes.encrypt(aes256({key:cryptoKey,method:"dec",text:result.name})),surname:aes.encrypt(aes256({key:cryptoKey,method:"dec",text:result.surname})),avatar:aes.encrypt(avatarResult)});
                             console.log("Exist: "+uid);
                             console.log("New token to "+uid+" is: "+AccessToken);
@@ -301,23 +359,28 @@ router.post('/generate-token',async(req,res) => {
         if(accessToken!==undefined) {
             const refreshToken = await knex.select("refreshToken","uuid").where({accessToken:accessToken}).from("usersToken");
             const refreshTokens = await knex.select("refreshToken").from("usersToken");
+            if(JSON.stringify(refreshToken)==="[]") return res.sendStatus(409);
+            if(JSON.stringify(refreshTokens)==="[]") return res.sendStatus(409);
             let getRefreshToken = null;
             let uuid = null;
             let getRefreshTokens = [];
+            let clientId = null;
             refreshToken.map((result)=>{getRefreshToken = result.refreshToken;uuid = result.uuid;});
             refreshTokens.map((result)=>getRefreshTokens.push(result.refreshToken));
+            const getClientId = await knex.select("clientId").from(uuid+"_usersToken");
+            getClientId.map((result)=>clientId=result.clientId);
             if (getRefreshToken == null) return res.sendStatus(409);
             if (!getRefreshTokens.includes(getRefreshToken)) return res.sendStatus(403);
             jwt.verify(getRefreshToken, process.env.REFRESH_TOKEN, async(err, user) => {
                 if (err) return res.sendStatus(403);
-                const accessTokenGeneration = generateAccessToken({ uuid:uuid });
-                const upd = await knex("usersToken").where({uuid:uuid}).update({accessToken:accessTokenGeneration});
+                const accessTokenGeneration = generateAccessToken({ uuid:uuid,clientId:clientId });
+                const upd = await knex("usersToken").where({uuid:uuid,accessToken:accessToken}).update({accessToken:accessTokenGeneration});
                 const access = aes.encrypt(accessTokenGeneration);
                 res.json({ accessToken: access });
             });
         }
     }
-    catch {
+    catch(e) {
         console.log('\x1b[31m%s\x1b[0m',"/generate-token - Mistake, mistake is ");
         console.log(e);
         return res.sendStatus(500);
@@ -330,22 +393,34 @@ router.post('/register-id',async(req,res)=>{
         const email = aes.decrypt(req.body.email);
         const password = aes.decrypt(req.body.password);
         const client = aes.decrypt(req.body.client);
+        const clientInfo = aes.decrypt(req.body.clientInfo);
         const start = await knex.select("email").where({email:email,client:client}).from("users");
         if(start.length == 0) {
             const {v4: uuidv4} = require('uuid');
             const data = String(Date.now());
             const uuid = data+"-"+uuidv4();
+            const clientId = data+"-"+uuidv4();
             const keyCrypto = require('crypto').randomBytes(32).toString('hex');
             const count = await knex('users').count('*');
             let id;
             count.map(result=>id=result['count(*)']);
             const newId = Number(id)+1;
             const loginUser = "user-"+newId;
-            const accessTokenGeneration = generateAccessToken({uuid:uuid});
-            const refreshTokenGeneration = generateRefreshToken({uuid:uuid});
+            const accessTokenGeneration = generateAccessToken({uuid:uuid,clientId:clientId});
+            const refreshTokenGeneration = generateRefreshToken({uuid:uuid,clientId:clientId});
             const usersStart = await knex('users').insert({uuid:uuid,login:aes256({key:keyCrypto,method:"enc",text:loginUser}),email:email,password:aes256({key:keyCrypto,method:"enc",text:password}),name:aes256({key:keyCrypto,method:"enc",text:name}),surname:aes256({key:keyCrypto,method:"enc",text:surname}),data:data,avatar:"/images/unknown.webp",client:client});
             const cryptoStart = await knex('usersKey').insert({uuid:uuid,keyCrypto:keyCrypto});
-            const tokenStart = await knex('usersToken').insert({uuid:uuid,accessToken:accessTokenGeneration,refreshToken:refreshTokenGeneration});
+            if (!(await knex.schema.hasTable(uuid+'_usersToken'))) {
+                await knex.schema.createTable(uuid+'_usersToken', function(table) {
+                    table.string('clientId').primary();
+                    table.text('getTime');
+                    table.text('clientInfo');
+                    table.text('accessToken');
+                    table.text('refreshToken');
+                });
+            }
+            const tokenStart = await knex(uuid+'_usersToken').insert({clientId:clientId,getTime:data,clientInfo:clientInfo,accessToken:accessTokenGeneration,refreshToken:refreshTokenGeneration});
+            const tokenInsert = await knex('usersToken').insert({uuid:uuid,clientId:clientId,accessToken:accessTokenGeneration,refreshToken:refreshTokenGeneration});
             res.json({success:true,accessToken:aes.encrypt(accessTokenGeneration)})
             console.log('\x1b[32m%s\x1b[0m',"№"+newId+") Registered new user "+email);
         } else {
