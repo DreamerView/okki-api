@@ -14,7 +14,6 @@ const knex = require('knex')({
       database : process.env.DATABASE_NAME_USERS,
     }
 });
-const IP = require('ip');
 
 const aes256 = ({key,method,text}) => {
     const chipherEncryption = require('aes-encryption');
@@ -64,8 +63,6 @@ const authToken = async(req,res,next) => {
 router.get('/get-devices',authToken,async(req,res)=>{
     try {
         const uuid = req.uid.uuid;
-        // const ipAddress = IP.address();
-        // console.log(ipAddress);
         console.log(req.ip)
         if(uuid!==undefined || uuid!==null) {
             const result = await knex.select('clientId','clientInfo','getTime').from(uuid+"_usersToken");
