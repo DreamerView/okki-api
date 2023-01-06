@@ -63,7 +63,6 @@ const authToken = async(req,res,next) => {
 router.get('/get-devices',authToken,async(req,res)=>{
     try {
         const uuid = req.uid.uuid;
-        console.log(req.ip)
         if(uuid!==undefined || uuid!==null) {
             const result = await knex.select('clientId','clientInfo','getTime').from(uuid+"_usersToken");
             // console.log(result);

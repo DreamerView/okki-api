@@ -73,7 +73,7 @@ const generateRefreshToken = (user) => {
 const authToken = async(req,res,next) => {
     const authHeader = req.headers['authorization'];
     const getToken = authHeader && authHeader.split(" ")[1];
-    console.log(getToken);
+    // console.log(getToken);
     const token = aes.decrypt(getToken);
     const getTokens = await knex.select("accessToken").where({accessToken:token}).from("usersToken");
     if(JSON.stringify(getTokens)==="[]") return res.sendStatus(409);
@@ -184,6 +184,20 @@ router.get('/signout',authToken,async(req,res)=>{
     }
 });
 
+router.post('/signout-device',authToken,async(req,res)=>{
+    const clientId = req.body.clientId;
+    try {
+        const first = await knex(req.uid.uuid+"_usersToken").del().where({clientId:clientId});
+        const second = await knex('usersToken').del().where({clientId:clientId,uuid:req.uid.uuid});
+        if(JSON.stringify(first)!=="[]"&&JSON.stringify(second)!=="[]") return res.send({accept:true});
+        else res.sendStatus(403);
+    } catch(e) {
+        console.log('\x1b[31m%s\x1b[0m',"/signout-device - Mistake, mistake is ");
+        console.log(e);
+        return res.sendStatus(500);
+    }
+});
+
 router.post('/signin', async(req, res) => {
     try {
         const uid =  aes.decrypt(req.body.email);
@@ -198,12 +212,10 @@ router.post('/signin', async(req, res) => {
                 getUUID.map(result=>{uuidReq=result["uuid"];passwordReq=result["password"]});
                 const getCrypto = await knex.select("keyCrypto").where({uuid:uuidReq}).from("usersKey");
                 getCrypto.map(result=>cryptoKey=result["keyCrypto"]);
-                console.log(passwordReq)
                 const password = aes256({key:cryptoKey,method:"dec",text:passwordReq})
                 if(pass===password) {
                     const start = await knex.select("uuid","name","surname","avatar").where({email:uid,client:"okki"}).from("users");
                     if(start.length === 0) {
-                        console.log("Not found");
                         res.sendStatus(404);
                     } else {
                         start.map(async(result)=>{
@@ -282,7 +294,6 @@ router.post('/verify-email',async(req,res)=>{
         const uid =  aes.decrypt(req.body.email);
         const client =  aes.decrypt(req.body.client);
         if(uid!==undefined) {
-            console.log(uid+" "+client)
             const start = await knex.select("name","surname","avatar","uuid","email").where({email:uid,client:client}).from("users");
             if(start.length === 0) {
                 res.sendStatus(404);
