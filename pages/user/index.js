@@ -31,15 +31,20 @@ const AesEncryption = require('aes-encryption');
 const aes = new AesEncryption();
 aes.setSecretKey(process.env.AES_KEY);
 
+const timerStart = (event) => {
+    return setTimeout(()=>event,[500]);
+};
+
 const authToken = async(req,res,next) => {
     const authHeader = req.headers['authorization'];
     const getToken = authHeader && authHeader.split(" ")[1];
     const token = aes.decrypt(getToken);
     const getTokens = await knex.select("accessToken").where({accessToken:token}).from("usersToken");
-    if(JSON.stringify(getTokens)==="[]") return res.sendStatus(409);
-    if(token==null) return res.sendStatus(409);
+    console.log(JSON.stringify(getTokens)==="[]");
+    if(JSON.stringify(getTokens)==="[]") return timerStart(res.sendStatus(409));
+    if(token===null) return timerStart(res.sendStatus(409));
     jwt.verify(token,process.env.ACCESS_TOKEN,async(err,uid)=>{
-        if(err) return res.sendStatus(406);
+        if(err) return timerStart(res.sendStatus(406));
         req.uid = uid;
         next();
     });
@@ -64,10 +69,10 @@ router.get('/get-devices',authToken,async(req,res)=>{
     try {
         const uuid = req.uid.uuid;
         if(uuid!==undefined || uuid!==null) {
-            const result = await knex.select('clientId','clientInfo','getTime').from(uuid+"_usersToken");
+            const result = await knex.select('clientId','clientInfo','getTime','ipInfo').from(uuid+"_usersToken");
             // console.log(result);
-            res.send({clientId:req.uid.clientId,result:result,ip:req.ip});
-        } else return res.sendStatus(406);
+            timerStart(res.send({clientId:req.uid.clientId,result:result}));
+        } else return timerStart(res.sendStatus(406));
     } catch(e) {
         console.log('\x1b[31m%s\x1b[0m',"/get-devices - Mistake, mistake is ");
         console.log(e);
@@ -89,8 +94,8 @@ router.get('/get-data',authToken,async(req,res)=>{
             const httpCheck = req.hostname==='localhost'?'http://':"https://";
             const portCheck = req.hostname==='localhost'?':'+process.env.PORT:"";
             const avatarResult = clientUser==="okki"?httpCheck+req.hostname+portCheck+avatarUser:avatarUser;
-            res.json({name:aes.encrypt(nameUser),surname:aes.encrypt(surnameUser),data:aes.encrypt(dataUser),avatar:aes.encrypt(avatarResult),login:aes.encrypt(loginUser)});
-        } else return res.sendStatus(406);
+            timerStart(res.json({name:aes.encrypt(nameUser),surname:aes.encrypt(surnameUser),data:aes.encrypt(dataUser),avatar:aes.encrypt(avatarResult),login:aes.encrypt(loginUser)}));
+        } else return timerStart(res.sendStatus(406));
     } catch(e) {
         console.log('\x1b[31m%s\x1b[0m',"/get-data - Mistake, mistake is ");
         console.log(e);

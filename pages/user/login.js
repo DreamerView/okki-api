@@ -15,6 +15,11 @@ const knex = require('knex')({
       database : process.env.DATABASE_NAME_USERS,
     }
 });
+const axios = require('axios');
+
+const timerStart = (event) => {
+    return setTimeout(()=>event,[500]);
+};
 
 const generatePassword = () => {
     var length = 4,
@@ -64,7 +69,7 @@ const aes256 = ({key,method,text}) => {
 };
 
 const generateAccessToken = (user) => {
-    return jwt.sign(user, process.env.ACCESS_TOKEN, { expiresIn: '1m' });
+    return jwt.sign(user, process.env.ACCESS_TOKEN, { expiresIn: '10s' });
 };
 const generateRefreshToken = (user) => {
     return jwt.sign(user, process.env.REFRESH_TOKEN);
@@ -73,13 +78,13 @@ const generateRefreshToken = (user) => {
 const authToken = async(req,res,next) => {
     const authHeader = req.headers['authorization'];
     const getToken = authHeader && authHeader.split(" ")[1];
-    // console.log(getToken);
     const token = aes.decrypt(getToken);
     const getTokens = await knex.select("accessToken").where({accessToken:token}).from("usersToken");
-    if(JSON.stringify(getTokens)==="[]") return res.sendStatus(409);
-    if(token==null) return res.sendStatus(409);
+    console.log(JSON.stringify(getTokens)==="[]");
+    if(JSON.stringify(getTokens)==="[]") return timerStart(res.sendStatus(409));
+    if(token===null) return timerStart(res.sendStatus(409));
     jwt.verify(token,process.env.ACCESS_TOKEN,async(err,uid)=>{
-        if(err) return res.sendStatus(406);
+        if(err) return timerStart(res.sendStatus(406));
         req.uid = uid;
         next();
     });
@@ -88,7 +93,7 @@ const authToken = async(req,res,next) => {
 
 router.post('/signin-with-socialnetwork',async(req,res)=>{
     try {
-        console.log("sds")
+        console.log("sds");
         const social = ['Google'];
         const email =  aes.decrypt(req.body.email);
         const all = aes.decrypt(req.body.name);
@@ -97,11 +102,14 @@ router.post('/signin-with-socialnetwork',async(req,res)=>{
         const name = all.split(" ")[0]===undefined||all.split(" ")[0]===null?" ":all.split(" ")[0];
         const surname = all.split(" ")[1]===undefined||all.split(" ")[1]===null?" ":all.split(" ")[1];
         const clientInfo = aes.decrypt(req.body.clientInfo);
+        const getIp = aes.decrypt(req.body.getIp);
         if(email!==undefined) {
             if(social.includes(client)) {
                 const getClient = await knex.select("uuid").where({email:email,client:client}).from("users");
                 console.log(email,client)
                 if(JSON.stringify(getClient)==="[]") {
+                    const ipParams = await axios.get("https://freeipapi.com/api/json/"+getIp);
+                    const ipInfo = JSON.stringify({ip:getIp,countryName:ipParams.data.countryName,countryCode:ipParams.data.countryCode,cityName:ipParams.data.cityName,reqionName:ipParams.data.reqionName});
                     const {v4: uuidv4} = require('uuid');
                     const data = String(Date.now());
                     const uuid = data+"-"+uuidv4();
@@ -117,50 +125,51 @@ router.post('/signin-with-socialnetwork',async(req,res)=>{
                     const loginResult = aes256({key:keyCrypto,method:"enc",text:loginUser});
                     const nameResult = aes256({key:keyCrypto,method:"enc",text:name});
                     const surnameResult = aes256({key:keyCrypto,method:"enc",text:surname});
-                    const checkEmail = await knex.select("uuid").where({email:email,client:client}).from("users");
-                    // if(JSON.stringify(checkEmail)==="[]") {
-                        const usersStart = await knex('users').insert({uuid:uuid,login:loginResult,email:email,password:null,name:nameResult,surname:surnameResult,data:data,avatar:image,client:client});
+                    const usersStart = await knex('users').insert({uuid:uuid,login:loginResult,email:email,password:null,name:nameResult,surname:surnameResult,data:data,avatar:image,client:client});
                         const cryptoStart = await knex('usersKey').insert({uuid:uuid,keyCrypto:keyCrypto});
                         if (!(await knex.schema.hasTable(uuid+'_usersToken'))) {
                             await knex.schema.createTable(uuid+'_usersToken', function(table) {
                                 table.string('clientId').primary();
                                 table.text('getTime');
+                                table.text('ipInfo');
                                 table.text('clientInfo');
                                 table.text('accessToken');
                                 table.text('refreshToken');
                             });
                         }
-                        const tokenStart = await knex(uuid+'_usersToken').insert({clientId:clientId,getTime:data,clientInfo:clientInfo,accessToken:accessTokenGeneration,refreshToken:refreshTokenGeneration});
+                        const tokenStart = await knex(uuid+'_usersToken').insert({clientId:clientId,getTime:data,ipInfo:ipInfo,clientInfo:clientInfo,accessToken:accessTokenGeneration,refreshToken:refreshTokenGeneration});
                         const tokenInsert = await knex('usersToken').insert({uuid:uuid,clientId:clientId,accessToken:accessTokenGeneration,refreshToken:refreshTokenGeneration});
-                        JSON.stringify(usersStart)!=="[]"&&res.json({success:true,accessToken:aes.encrypt(accessTokenGeneration),name:aes.encrypt(name),surname:aes.encrypt(surname),avatar:aes.encrypt(image)})
+                        timerStart(JSON.stringify(usersStart)!=="[]"&&res.json({success:true,accessToken:aes.encrypt(accessTokenGeneration),name:aes.encrypt(name),surname:aes.encrypt(surname),avatar:aes.encrypt(image)}))
                         console.log('\x1b[32m%s\x1b[0m',"№"+newId+") Registered new user "+email);
-                    // }
                 } else {
+                    const ipParams = await axios.get("https://freeipapi.com/api/json/"+getIp);
+                    const ipInfo = JSON.stringify({ip:getIp,countryName:ipParams.data.countryName,countryCode:ipParams.data.countryCode,cityName:ipParams.data.cityName,reqionName:ipParams.data.reqionName});
                     const {v4: uuidv4} = require('uuid');
                     const data = String(Date.now());
                     const clientId = data+"-"+uuidv4();
                     console.log('exist')
                     let uuid;
                     getClient.map(result=>uuid=result.uuid);
-                    const AccessToken = generateAccessToken({uuid:uuid,clientId:clientId});
+                    const accessTokenGeneration = generateAccessToken({uuid:uuid,clientId:clientId});
                     const refreshToken = generateRefreshToken({uuid:uuid,clientId:clientId});
                     if (!(await knex.schema.hasTable(uuid+'_usersToken'))) {
                         await knex.schema.createTable(uuid+'_usersToken', function(table) {
                             table.string('clientId').primary();
                             table.text('getTime');
+                            table.text('ipInfo');
                             table.text('clientInfo');
                             table.text('accessToken');
                             table.text('refreshToken');
                         });
                     }
-                    const tokenStart = await knex(uuid+'_usersToken').insert({clientId:clientId,getTime:data,clientInfo:clientInfo,accessToken:AccessToken,refreshToken:refreshToken});
-                    const tokenInsert = await knex('usersToken').insert({uuid:uuid,clientId:clientId,accessToken:AccessToken,refreshToken:refreshToken});
-                    res.json({accessToken:aes.encrypt(AccessToken),name:aes.encrypt(name),surname:aes.encrypt(surname),avatar:aes.encrypt(image)});
+                    const tokenStart = await knex(uuid+'_usersToken').insert({clientId:clientId,getTime:data,ipInfo:ipInfo,clientInfo:clientInfo,accessToken:accessTokenGeneration,refreshToken:refreshToken});
+                    const tokenInsert = await knex('usersToken').insert({uuid:uuid,clientId:clientId,accessToken:accessTokenGeneration,refreshToken:refreshToken});
+                    timerStart(res.json({accessToken:aes.encrypt(accessTokenGeneration),name:aes.encrypt(name),surname:aes.encrypt(surname),avatar:aes.encrypt(image)}));
                     console.log("Exist: "+uuid);
-                    console.log("New token to "+uuid+" is: "+AccessToken);
+                    console.log("New token to "+uuid+" is: "+accessTokenGeneration);
                 }
             } 
-            else res.sendStatus(404);
+            else timerStart(res.sendStatus(404));
 
         }
     }
@@ -175,8 +184,8 @@ router.get('/signout',authToken,async(req,res)=>{
     try {
         const first = await knex(req.uid.uuid+"_usersToken").del().where({clientId:req.uid.clientId});
         const second = await knex('usersToken').del().where({clientId:req.uid.clientId,uuid:req.uid.uuid});
-        if(JSON.stringify(first)!=="[]"&&JSON.stringify(second)!=="[]") return res.send({accept:true});
-        else res.sendStatus(403);
+        if(JSON.stringify(first)!=="[]"&&JSON.stringify(second)!=="[]") return timerStart(res.send({accept:true}));
+        else timerStart(res.sendStatus(409));
     } catch(e) {
         console.log('\x1b[31m%s\x1b[0m',"/signout - Mistake, mistake is ");
         console.log(e);
@@ -189,8 +198,8 @@ router.post('/signout-device',authToken,async(req,res)=>{
     try {
         const first = await knex(req.uid.uuid+"_usersToken").del().where({clientId:clientId});
         const second = await knex('usersToken').del().where({clientId:clientId,uuid:req.uid.uuid});
-        if(JSON.stringify(first)!=="[]"&&JSON.stringify(second)!=="[]") return res.send({accept:true});
-        else res.sendStatus(403);
+        if(JSON.stringify(first)!=="[]"&&JSON.stringify(second)!=="[]") return timerStart(res.send({accept:true}));
+        else timerStart(res.sendStatus(409));
     } catch(e) {
         console.log('\x1b[31m%s\x1b[0m',"/signout-device - Mistake, mistake is ");
         console.log(e);
@@ -222,7 +231,7 @@ router.post('/signin', async(req, res) => {
                             const {v4: uuidv4} = require('uuid');
                             const data = String(Date.now());
                             const clientId = data+"-"+uuidv4();
-                            const AccessToken = generateAccessToken({uuid:result.uuid,clientId:clientId});
+                            const accessTokenGeneration = generateAccessToken({uuid:uuid,clientId:clientId});
                             const refreshToken = generateRefreshToken({uuid:result.uuid,clientId:clientId});
                             const avatarUser = result.avatar;
                             const httpCheck = req.hostname==='localhost'?'http://':"https://";
@@ -237,15 +246,15 @@ router.post('/signin', async(req, res) => {
                                     table.text('refreshToken');
                                 });
                             }
-                            const tokenStart = await knex(result.uuid+'_usersToken').insert({clientId:clientId,getTime:data,clientInfo:clientInfo,accessToken:AccessToken,refreshToken:refreshToken});
-                            const tokenInsert = await knex('usersToken').insert({uuid:result.uuid,accessToken:AccessToken,refreshToken:refreshToken,clientId:clientId});
-                            res.json({accessToken:aes.encrypt(AccessToken),name:aes.encrypt(aes256({key:cryptoKey,method:"dec",text:result.name})),surname:aes.encrypt(aes256({key:cryptoKey,method:"dec",text:result.surname})),avatar:aes.encrypt(avatarResult)});
+                            const tokenStart = await knex(result.uuid+'_usersToken').insert({clientId:clientId,getTime:data,clientInfo:clientInfo,accessToken:accessTokenGeneration,refreshToken:refreshToken});
+                            const tokenInsert = await knex('usersToken').insert({uuid:result.uuid,accessToken:accessTokenGeneration,refreshToken:refreshToken,clientId:clientId});
+                            timerStart(res.json({accessToken:aes.encrypt(accessTokenGeneration),name:aes.encrypt(aes256({key:cryptoKey,method:"dec",text:result.name})),surname:aes.encrypt(aes256({key:cryptoKey,method:"dec",text:result.surname})),avatar:aes.encrypt(avatarResult)}));
                             console.log("Exist: "+uid);
-                            console.log("New token to "+uid+" is: "+AccessToken);
+                            console.log("New token to "+uid+" is: "+accessTokenGeneration);
                         });
                     }
                 } else {
-                    res.sendStatus(404);
+                    timerStart(res.sendStatus(404));
                 }
             }
         }
@@ -308,7 +317,7 @@ router.post('/verify-email',async(req,res)=>{
                 const httpCheck = req.hostname==='localhost'?'http://':"https://";
                 const portCheck = req.hostname==='localhost'?':'+process.env.PORT:"";
                 const avatarResult = client==="okki"?httpCheck+req.hostname+portCheck+avatar:avatar;
-                res.json({success:true,name:aes.encrypt(nameResult),surname:aes.encrypt(surnameResult),avatar:aes.encrypt(avatarResult),email:aes.encrypt(email)});
+                timerStart(res.json({success:true,name:aes.encrypt(nameResult),surname:aes.encrypt(surnameResult),avatar:aes.encrypt(avatarResult),email:aes.encrypt(email)}));
             }
         }
     } catch(e) {
@@ -336,9 +345,9 @@ router.post('/verify-email-otp',async(req,res)=>{
                     if (err) console.log(err);
                     else console.log(info);
                 });
-                res.json({otp:aes.encrypt(otp_key),success:true});
+                timerStart(res.json({otp:aes.encrypt(otp_key),success:true}));
             } else {
-                res.sendStatus(404);
+                timerStart(res.sendStatus(404));
             }
         }
     } catch(e) {
@@ -355,12 +364,12 @@ router.post('/reset-password-otp',async(req,res)=>{
         const otp = req.body.otp;
         const email = aes.decrypt(req.body.email);
         let start = await knex.select("uuid").where({email:email}).andWhere({otp:otp}).from('users');
-        if(start.length===0) res.sendStatus(404);
+        if(start.length===0) timerStart(res.sendStatus(404));
         else res.json({success:true});
     } catch {
         console.log('\x1b[31m%s\x1b[0m',"/reset-password-otp - Mistake, mistake is ");
         console.log(e);
-        return res.sendStatus(500);
+        return timerStart(res.sendStatus(500));
     }
 });
 
@@ -368,33 +377,41 @@ router.post('/generate-token',async(req,res) => {
     try {
         const accessToken = aes.decrypt(req.body.token);
         if(accessToken!==undefined) {
-            const refreshToken = await knex.select("refreshToken","uuid").where({accessToken:accessToken}).from("usersToken");
+            const refreshToken = await knex.select("refreshToken","uuid","clientId").where({accessToken:accessToken}).from("usersToken");
             const refreshTokens = await knex.select("refreshToken").from("usersToken");
-            if(JSON.stringify(refreshToken)==="[]") return res.sendStatus(409);
-            if(JSON.stringify(refreshTokens)==="[]") return res.sendStatus(409);
-            let getRefreshToken = null;
-            let uuid = null;
-            let getRefreshTokens = [];
-            let clientId = null;
-            refreshToken.map((result)=>{getRefreshToken = result.refreshToken;uuid = result.uuid;});
-            refreshTokens.map((result)=>getRefreshTokens.push(result.refreshToken));
-            const getClientId = await knex.select("clientId").from(uuid+"_usersToken");
-            getClientId.map((result)=>clientId=result.clientId);
-            if (getRefreshToken == null) return res.sendStatus(409);
-            if (!getRefreshTokens.includes(getRefreshToken)) return res.sendStatus(403);
-            jwt.verify(getRefreshToken, process.env.REFRESH_TOKEN, async(err, user) => {
-                if (err) return res.sendStatus(403);
-                const accessTokenGeneration = generateAccessToken({ uuid:uuid,clientId:clientId });
-                const upd = await knex("usersToken").where({uuid:uuid,accessToken:accessToken}).update({accessToken:accessTokenGeneration});
-                const access = aes.encrypt(accessTokenGeneration);
-                res.json({ accessToken: access });
-            });
+            if(JSON.stringify(refreshToken)==="[]") {console.log("Not found token!");timerStart(res.sendStatus(409));}
+            else if(JSON.stringify(refreshTokens)==="[]") {console.log("Not found tokens!");timerStart(res.sendStatus(409));}
+            else {
+                console.log("all okey")
+                let getRefreshToken = null;
+                let uuid = null;
+                let getRefreshTokens = [];
+                let clientId = null;
+                refreshToken.map((result)=>{getRefreshToken = result.refreshToken;uuid = result.uuid;clientId=result.clientId;});
+                refreshTokens.map((result)=>getRefreshTokens.push(result.refreshToken));
+                if (getRefreshToken === null) {console.log("Error1 is here");return timerStart(res.sendStatus(409))};
+                if (!getRefreshTokens.includes(getRefreshToken)) {console.log("Error2 is here");return timerStart(res.sendStatus(409));}
+                    console.log("uuid: "+uuid)
+                    console.log("clientId: "+clientId);
+                    const accessTokenGeneration = generateAccessToken({uuid:uuid,clientId:clientId});
+                    const upd = await knex("usersToken").where({uuid:uuid,clientId:clientId}).update({accessToken:accessTokenGeneration});
+                    const upd1 = await knex(uuid+'_usersToken').where({clientId:clientId}).update({accessToken:accessTokenGeneration});
+                    console.log(upd+" "+upd1);
+                    if(upd===1&&upd1===1) {
+                        const access = aes.encrypt(accessTokenGeneration);
+                        console.warn('updated!');
+                        return timerStart(res.json({ accessToken: access }));
+                    } else {
+                        console.log("Error!");
+                        return timerStart(res.sendStatus(409));
+                    }
+            }
         }
     }
     catch(e) {
         console.log('\x1b[31m%s\x1b[0m',"/generate-token - Mistake, mistake is ");
         console.log(e);
-        return res.sendStatus(500);
+        return setTimeout(()=>res.sendStatus(500),[500]);
     }
 });
 router.post('/register-id',async(req,res)=>{
@@ -432,10 +449,10 @@ router.post('/register-id',async(req,res)=>{
             }
             const tokenStart = await knex(uuid+'_usersToken').insert({clientId:clientId,getTime:data,clientInfo:clientInfo,accessToken:accessTokenGeneration,refreshToken:refreshTokenGeneration});
             const tokenInsert = await knex('usersToken').insert({uuid:uuid,clientId:clientId,accessToken:accessTokenGeneration,refreshToken:refreshTokenGeneration});
-            res.json({success:true,accessToken:aes.encrypt(accessTokenGeneration)})
+            timerStart(res.json({success:true,accessToken:aes.encrypt(accessTokenGeneration)}))
             console.log('\x1b[32m%s\x1b[0m',"№"+newId+") Registered new user "+email);
         } else {
-            res.json({email:true});
+            timerStart(res.json({email:true}));
         }
     } catch(e) {
         console.log('\x1b[31m%s\x1b[0m',"/register-id - Mistake, mistake is ");
