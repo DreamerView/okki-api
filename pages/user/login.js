@@ -69,7 +69,7 @@ const aes256 = ({key,method,text}) => {
 };
 
 const generateAccessToken = (user) => {
-    return jwt.sign(user, process.env.ACCESS_TOKEN, { expiresIn: '10s' });
+    return jwt.sign(user, process.env.ACCESS_TOKEN, { expiresIn: '14d' });
 };
 const generateRefreshToken = (user) => {
     return jwt.sign(user, process.env.REFRESH_TOKEN);
@@ -214,6 +214,7 @@ router.post('/signin', async(req, res) => {
         const pass = aes.decrypt(req.body.password);
         const client = aes.decrypt(req.body.client);
         const clientInfo = aes.decrypt(req.body.clientInfo);
+        const getIp = aes.decrypt(req.body.getIp);
         if(uid!==undefined) {
             let uuidReq,passwordReq,cryptoKey;
             const getUUID = await knex.select("uuid","password").where({email:uid,client:client}).from("users");
@@ -229,26 +230,30 @@ router.post('/signin', async(req, res) => {
                         res.sendStatus(404);
                     } else {
                         start.map(async(result)=>{
+                            const ipParams = await axios.get("https://freeipapi.com/api/json/"+getIp);
+                            const ipInfo = JSON.stringify({ip:getIp,countryName:ipParams.data.countryName,countryCode:ipParams.data.countryCode,cityName:ipParams.data.cityName,reqionName:ipParams.data.reqionName});
                             const {v4: uuidv4} = require('uuid');
                             const data = String(Date.now());
                             const clientId = data+"-"+uuidv4();
+                            const uuid = result.uuid;
                             const accessTokenGeneration = generateAccessToken({uuid:uuid,clientId:clientId});
-                            const refreshToken = generateRefreshToken({uuid:result.uuid,clientId:clientId});
+                            const refreshToken = generateRefreshToken({uuid:uuid,clientId:clientId});
                             const avatarUser = result.avatar;
                             const httpCheck = req.hostname==='localhost'?'http://':"https://";
                             const portCheck = req.hostname==='localhost'?':'+process.env.PORT:"";
                             const avatarResult = httpCheck+req.hostname+portCheck+avatarUser;
-                            if (!(await knex.schema.hasTable(result.uuid+'_usersToken'))) {
-                                await knex.schema.createTable(result.uuid+'_usersToken', function(table) {
+                            if (!(await knex.schema.hasTable(uuid+'_usersToken'))) {
+                                await knex.schema.createTable(uuid+'_usersToken', function(table) {
                                     table.string('clientId').primary();
                                     table.text('getTime');
+                                    table.text('ipInfo');
                                     table.text('clientInfo');
                                     table.text('accessToken');
                                     table.text('refreshToken');
                                 });
                             }
-                            const tokenStart = await knex(result.uuid+'_usersToken').insert({clientId:clientId,getTime:data,clientInfo:clientInfo,accessToken:accessTokenGeneration,refreshToken:refreshToken});
-                            const tokenInsert = await knex('usersToken').insert({uuid:result.uuid,accessToken:accessTokenGeneration,refreshToken:refreshToken,clientId:clientId});
+                            const tokenStart = await knex(uuid+'_usersToken').insert({clientId:clientId,ipInfo:ipInfo,getTime:data,clientInfo:clientInfo,accessToken:accessTokenGeneration,refreshToken:refreshToken});
+                            const tokenInsert = await knex('usersToken').insert({uuid:uuid,accessToken:accessTokenGeneration,refreshToken:refreshToken,clientId:clientId});
                             timerStart(res.json({accessToken:aes.encrypt(accessTokenGeneration),name:aes.encrypt(aes256({key:cryptoKey,method:"dec",text:result.name})),surname:aes.encrypt(aes256({key:cryptoKey,method:"dec",text:result.surname})),avatar:aes.encrypt(avatarResult),clientId:aes.encrypt(clientId)}));
                             console.log("Exist: "+uid);
                             console.log("New token to "+uid+" is: "+accessTokenGeneration);
@@ -424,8 +429,11 @@ router.post('/register-id',async(req,res)=>{
         const password = aes.decrypt(req.body.password);
         const client = aes.decrypt(req.body.client);
         const clientInfo = aes.decrypt(req.body.clientInfo);
+        const getIp = aes.decrypt(req.body.getIp);
         const start = await knex.select("email").where({email:email,client:client}).from("users");
         if(start.length == 0) {
+            const ipParams = await axios.get("https://freeipapi.com/api/json/"+getIp);
+            const ipInfo = JSON.stringify({ip:getIp,countryName:ipParams.data.countryName,countryCode:ipParams.data.countryCode,cityName:ipParams.data.cityName,reqionName:ipParams.data.reqionName});
             const {v4: uuidv4} = require('uuid');
             const data = String(Date.now());
             const uuid = data+"-"+uuidv4();
@@ -444,12 +452,13 @@ router.post('/register-id',async(req,res)=>{
                 await knex.schema.createTable(uuid+'_usersToken', function(table) {
                     table.string('clientId').primary();
                     table.text('getTime');
+                    table.text('ipInfo');
                     table.text('clientInfo');
                     table.text('accessToken');
                     table.text('refreshToken');
                 });
             }
-            const tokenStart = await knex(uuid+'_usersToken').insert({clientId:clientId,getTime:data,clientInfo:clientInfo,accessToken:accessTokenGeneration,refreshToken:refreshTokenGeneration});
+            const tokenStart = await knex(uuid+'_usersToken').insert({clientId:clientId,ipInfo:ipInfo,getTime:data,clientInfo:clientInfo,accessToken:accessTokenGeneration,refreshToken:refreshTokenGeneration});
             const tokenInsert = await knex('usersToken').insert({uuid:uuid,clientId:clientId,accessToken:accessTokenGeneration,refreshToken:refreshTokenGeneration});
             timerStart(res.json({success:true,accessToken:aes.encrypt(accessTokenGeneration),clientId:aes.encrypt(clientId)}))
             console.log('\x1b[32m%s\x1b[0m',"№"+newId+") Registered new user "+email);
