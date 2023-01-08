@@ -13,6 +13,10 @@ const knex = require('knex')({
       user : process.env.DATABASE_USER,
       password : process.env.DATABASE_PASSWORD,
       database : process.env.DATABASE_NAME_USERS,
+    },
+    pool: {
+      min: 0,
+      max: 7
     }
 });
 const axios = require('axios');
@@ -383,6 +387,16 @@ router.post('/generate-token',async(req,res) => {
     try {
         const getClientId = aes.decrypt(req.body.clientId);
         if(getClientId!==undefined) {
+            const knex = require('knex')({
+                client: 'mysql2',
+                connection: {
+                  host : process.env.DATABASE_HOST,
+                  port : process.env.DATABASE_PORT,
+                  user : process.env.DATABASE_USER,
+                  password : process.env.DATABASE_PASSWORD,
+                  database : process.env.DATABASE_NAME_USERS,
+                }
+            });
             const refreshToken = await knex.select("refreshToken","uuid").where({clientId:getClientId}).from("usersToken");
             const refreshTokens = await knex.select("refreshToken").from("usersToken");
             if(JSON.stringify(refreshToken)==="[]") {console.log("Not found token!");timerStart(res.sendStatus(409));}
@@ -412,6 +426,7 @@ router.post('/generate-token',async(req,res) => {
                         return timerStart(res.sendStatus(409));
                     }
             }
+            knex.destroy();
         }
         else return res.sendStatus(409);
     }
