@@ -40,6 +40,7 @@ const authToken = async(req,res,next) => {
     const getToken = authHeader && authHeader.split(" ")[1];
     const token = aes.decrypt(getToken);
     const getTokens = await knex.select("accessToken").where({accessToken:token}).from("usersToken");
+    console.log(token);
     console.log(JSON.stringify(getTokens)==="[]");
     if(JSON.stringify(getTokens)==="[]") return timerStart(res.sendStatus(409));
     if(token===null) return timerStart(res.sendStatus(409));
