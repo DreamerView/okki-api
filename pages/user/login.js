@@ -400,7 +400,7 @@ router.post('/generate-token',async(req,res) => {
                     if(upd===1&&upd1===1) {
                         const access = aes.encrypt(accessTokenGeneration);
                         console.warn('updated!');
-                        return timerStart(res.json({ accessToken: access }));
+                        return timerStart(res.json({ accessToken: access,clientId:getClientId }));
                     } else {
                         console.log("Error!");
                         return timerStart(res.sendStatus(409));
