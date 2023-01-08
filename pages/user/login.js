@@ -78,9 +78,10 @@ const generateRefreshToken = (user) => {
 const authToken = async(req,res,next) => {
     const authHeader = req.headers['authorization'];
     const getToken = authHeader && authHeader.split(" ")[1];
+    const getClientId = authHeader && authHeader.split(" ")[2];
     const token = aes.decrypt(getToken);
-    const getTokens = await knex.select("accessToken").where({accessToken:token}).from("usersToken");
-    console.log(JSON.stringify(getTokens)==="[]");
+    const clientId = aes.decrypt(getClientId);
+    const getTokens = await knex.select("accessToken").where({clientId:clientId}).from("usersToken");
     if(JSON.stringify(getTokens)==="[]") return timerStart(res.sendStatus(409));
     if(token===null) return timerStart(res.sendStatus(409));
     jwt.verify(token,process.env.ACCESS_TOKEN,async(err,uid)=>{
@@ -375,7 +376,6 @@ router.post('/reset-password-otp',async(req,res)=>{
 
 router.post('/generate-token',async(req,res) => {
     try {
-        // const accessToken = aes.decrypt(req.body.token);
         const getClientId = aes.decrypt(req.body.clientId);
         if(getClientId!==undefined) {
             const refreshToken = await knex.select("refreshToken","uuid").where({clientId:getClientId}).from("usersToken");

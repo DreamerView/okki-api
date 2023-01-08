@@ -38,10 +38,10 @@ const timerStart = (event) => {
 const authToken = async(req,res,next) => {
     const authHeader = req.headers['authorization'];
     const getToken = authHeader && authHeader.split(" ")[1];
+    const getClientId = authHeader && authHeader.split(" ")[2];
     const token = aes.decrypt(getToken);
-    const getTokens = await knex.select("accessToken").where({accessToken:token}).from("usersToken");
-    console.log(token);
-    console.log(JSON.stringify(getTokens)==="[]");
+    const clientId = aes.decrypt(getClientId);
+    const getTokens = await knex.select("accessToken").where({clientId:clientId}).from("usersToken");
     if(JSON.stringify(getTokens)==="[]") return timerStart(res.sendStatus(409));
     if(token===null) return timerStart(res.sendStatus(409));
     jwt.verify(token,process.env.ACCESS_TOKEN,async(err,uid)=>{
