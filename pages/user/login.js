@@ -399,8 +399,9 @@ router.post('/generate-token',async(req,res) => {
                     console.log(upd+" "+upd1);
                     if(upd===1&&upd1===1) {
                         const access = aes.encrypt(accessTokenGeneration);
+                        const clientIdResult = aes.encrypt(getClientId)
                         console.warn('updated!');
-                        return timerStart(res.json({ accessToken: access,clientId:getClientId }));
+                        return timerStart(res.json({ accessToken: access,clientId:clientIdResult }));
                     } else {
                         console.log("Error!");
                         return timerStart(res.sendStatus(409));
