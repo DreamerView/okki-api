@@ -69,7 +69,7 @@ const aes256 = ({key,method,text}) => {
 };
 
 const generateAccessToken = (user) => {
-    return jwt.sign(user, process.env.ACCESS_TOKEN, { expiresIn: '14d' });
+    return jwt.sign(user, process.env.ACCESS_TOKEN, { expiresIn: '7m' });
 };
 const generateRefreshToken = (user) => {
     return jwt.sign(user, process.env.REFRESH_TOKEN);
