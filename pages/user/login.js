@@ -407,6 +407,7 @@ router.post('/generate-token',async(req,res) => {
                     }
             }
         }
+        else return res.sendStatus(409);
     }
     catch(e) {
         console.log('\x1b[31m%s\x1b[0m',"/generate-token - Mistake, mistake is ");
