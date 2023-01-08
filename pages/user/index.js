@@ -72,7 +72,7 @@ router.get('/get-devices',authToken,async(req,res)=>{
         if(uuid!==undefined || uuid!==null) {
             const result = await knex.select('clientId','clientInfo','getTime','ipInfo').from(uuid+"_usersToken");
             // console.log(result);
-            timerStart(res.send({clientId:req.uid.clientId,result:result}));
+            res.json({clientId:req.uid.clientId,result:result});
         } else return timerStart(res.sendStatus(406));
     } catch(e) {
         console.log('\x1b[31m%s\x1b[0m',"/get-devices - Mistake, mistake is ");
@@ -95,7 +95,7 @@ router.get('/get-data',authToken,async(req,res)=>{
             const httpCheck = req.hostname==='localhost'?'http://':"https://";
             const portCheck = req.hostname==='localhost'?':'+process.env.PORT:"";
             const avatarResult = clientUser==="okki"?httpCheck+req.hostname+portCheck+avatarUser:avatarUser;
-            timerStart(res.json({name:aes.encrypt(nameUser),surname:aes.encrypt(surnameUser),data:aes.encrypt(dataUser),avatar:aes.encrypt(avatarResult),login:aes.encrypt(loginUser)}));
+            res.json({name:aes.encrypt(nameUser),surname:aes.encrypt(surnameUser),data:aes.encrypt(dataUser),avatar:aes.encrypt(avatarResult),login:aes.encrypt(loginUser)});
         } else return timerStart(res.sendStatus(406));
     } catch(e) {
         console.log('\x1b[31m%s\x1b[0m',"/get-data - Mistake, mistake is ");

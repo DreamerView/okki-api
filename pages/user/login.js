@@ -185,8 +185,8 @@ router.get('/signout',authToken,async(req,res)=>{
     try {
         const first = await knex(req.uid.uuid+"_usersToken").del().where({clientId:req.uid.clientId});
         const second = await knex('usersToken').del().where({clientId:req.uid.clientId,uuid:req.uid.uuid});
-        if(JSON.stringify(first)!=="[]"&&JSON.stringify(second)!=="[]") return timerStart(res.send({accept:true}));
-        else timerStart(res.sendStatus(409));
+        if(JSON.stringify(first)!=="[]"&&JSON.stringify(second)!=="[]") return res.send({accept:true});
+        else res.sendStatus(409);
     } catch(e) {
         console.log('\x1b[31m%s\x1b[0m',"/signout - Mistake, mistake is ");
         console.log(e);
