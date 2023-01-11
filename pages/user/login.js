@@ -13,10 +13,6 @@ const knex = require('knex')({
       user : process.env.DATABASE_USER,
       password : process.env.DATABASE_PASSWORD,
       database : process.env.DATABASE_NAME_USERS,
-    },
-    pool: {
-      min: 0,
-      max: 7
     }
 });
 const axios = require('axios');
@@ -189,7 +185,7 @@ router.get('/signout',authToken,async(req,res)=>{
     try {
         const first = await knex(req.uid.uuid+"_usersToken").del().where({clientId:req.uid.clientId});
         const second = await knex('usersToken').del().where({clientId:req.uid.clientId,uuid:req.uid.uuid});
-        if(JSON.stringify(first)!=="[]"&&JSON.stringify(second)!=="[]") return res.send({accept:true});
+        if(JSON.stringify(first)!=="[]"&&JSON.stringify(second)!=="[]") return res.json({accept:true});
         else res.sendStatus(409);
     } catch(e) {
         console.log('\x1b[31m%s\x1b[0m',"/signout - Mistake, mistake is ");
@@ -203,7 +199,7 @@ router.post('/signout-device',authToken,async(req,res)=>{
     try {
         const first = await knex(req.uid.uuid+"_usersToken").del().where({clientId:clientId});
         const second = await knex('usersToken').del().where({clientId:clientId,uuid:req.uid.uuid});
-        if(JSON.stringify(first)!=="[]"&&JSON.stringify(second)!=="[]") return timerStart(res.send({accept:true}));
+        if(JSON.stringify(first)!=="[]"&&JSON.stringify(second)!=="[]") return timerStart(res.json({accept:true}));
         else timerStart(res.sendStatus(409));
     } catch(e) {
         console.log('\x1b[31m%s\x1b[0m',"/signout-device - Mistake, mistake is ");
