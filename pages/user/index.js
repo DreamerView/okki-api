@@ -41,16 +41,7 @@ const timerStart = (event) => {
 };
 
 const authToken = async(req,res,next) => {
-    const knex = require('knex')({
-        client: 'mysql2',
-        connection: {
-          host : process.env.DATABASE_HOST,
-          port : process.env.DATABASE_PORT,
-          user : process.env.DATABASE_USER,
-          password : process.env.DATABASE_PASSWORD,
-          database : process.env.DATABASE_NAME_USERS,
-        }
-    });
+    const knex = require('knex')(require('../knex/user'));
     const authHeader = req.headers['authorization'];
     const getToken = authHeader && authHeader.split(" ")[1];
     const getClientId = authHeader && authHeader.split(" ")[2];
@@ -67,37 +58,12 @@ const authToken = async(req,res,next) => {
     });
 };
 
-
-
-// router.get('/database-select',authToken,async(req,res)=>{
-//     try {
-//         console.log(req.uid.uuid);
-//         let select_array = req.query.select!==undefined?req.query.select:"";
-//         const getDatabase = await knex.select(select_array).from("users");
-//         res.json(getDatabase);
-//     } catch(e) {
-//         console.log('\x1b[31m%s\x1b[0m',"/database-select - Mistake, mistake is ");
-//         console.log(e);
-//         return res.sendStatus(500);
-//     }
-// });
-
 router.get('/get-devices',authToken,async(req,res)=>{
     try {
         const uuid = req.uid.uuid;
         if(uuid!==undefined || uuid!==null) {
-            const knex = require('knex')({
-                client: 'mysql2',
-                connection: {
-                  host : process.env.DATABASE_HOST,
-                  port : process.env.DATABASE_PORT,
-                  user : process.env.DATABASE_USER,
-                  password : process.env.DATABASE_PASSWORD,
-                  database : process.env.DATABASE_NAME_USERS,
-                }
-            });
+            const knex = require('knex')(require('../knex/user'));
             const result = await knex.select('clientId','clientInfo','getTime','ipInfo').from(uuid+"_usersToken");
-            // console.log(result);
             res.json({clientId:req.uid.clientId,result:result});
             knex.destroy();
         } else return timerStart(res.sendStatus(406));
@@ -112,16 +78,7 @@ router.get('/get-data',authToken,async(req,res)=>{
     try {
         const uuid = req.uid.uuid;
         if(uuid!==undefined || uuid!==null) {
-            const knex = require('knex')({
-                client: 'mysql2',
-                connection: {
-                  host : process.env.DATABASE_HOST,
-                  port : process.env.DATABASE_PORT,
-                  user : process.env.DATABASE_USER,
-                  password : process.env.DATABASE_PASSWORD,
-                  database : process.env.DATABASE_NAME_USERS,
-                }
-            });
+            const knex = require('knex')(require('../knex/user'));
             let cryptoKey;
             const getCrypto = await knex.select('keyCrypto').from("usersKey").where({uuid:uuid});
             getCrypto.map(result=>cryptoKey=result['keyCrypto']);
