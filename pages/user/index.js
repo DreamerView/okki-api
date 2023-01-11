@@ -4,20 +4,6 @@
 const jwt = require('jsonwebtoken');
 const express = require('express');
 const router = express.Router();
-// const knex = require('knex')({
-//     client: 'mysql2',
-//     connection: {
-//       host : process.env.DATABASE_HOST,
-//       port : process.env.DATABASE_PORT,
-//       user : process.env.DATABASE_USER,
-//       password : process.env.DATABASE_PASSWORD,
-//       database : process.env.DATABASE_NAME_USERS,
-//     },
-//     pool: {
-//       min: 0,
-//       max: 7
-//     }
-// });
 
 
 const aes256 = ({key,method,text}) => {
@@ -42,7 +28,7 @@ const timerStart = (event) => {
 
 const authToken = async(req,res,next) => {
     const knex = require('knex')(require('../knex/user'));
-    const authHeader = req.headers['authorization'];
+    const authHeader = req.headers.authorization;
     const getToken = authHeader && authHeader.split(" ")[1];
     const getClientId = authHeader && authHeader.split(" ")[2];
     const token = aes.decrypt(getToken);
@@ -81,12 +67,11 @@ router.get('/get-data',authToken,async(req,res)=>{
             const knex = require('knex')(require('../knex/user'));
             let cryptoKey;
             const getCrypto = await knex.select('keyCrypto').from("usersKey").where({uuid:uuid});
-            getCrypto.map(result=>cryptoKey=result['keyCrypto']);
-            let select_array = req.query.select!==undefined?req.query.select:"";
+            getCrypto.map(result=>cryptoKey=result.keyCrypto);
             const getDatabase = await knex.select("name","surname","data","avatar","login","client").from("users").where("uuid",uuid);
             knex.destroy();
             let nameUser,surnameUser,dataUser,avatarUser,loginUser,clientUser;
-            getDatabase.map(result=>{nameUser=aes256({key:cryptoKey,method:"dec",text:result['name']});surnameUser=aes256({key:cryptoKey,method:"dec",text:result['surname']});dataUser=result['data'];avatarUser=result['avatar'];clientUser=result['client'];loginUser=aes256({key:cryptoKey,method:"dec",text:result['login']})})
+            getDatabase.map(result=>{nameUser=aes256({key:cryptoKey,method:"dec",text:result.name});surnameUser=aes256({key:cryptoKey,method:"dec",text:result.surname});dataUser=result.data;avatarUser=result.avatar;clientUser=result.client;loginUser=aes256({key:cryptoKey,method:"dec",text:result.login});});
             const httpCheck = req.hostname==='localhost'?'http://':"https://";
             const portCheck = req.hostname==='localhost'?':'+process.env.PORT:"";
             const avatarResult = clientUser==="okki"?httpCheck+req.hostname+portCheck+avatarUser:avatarUser;
