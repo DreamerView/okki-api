@@ -231,7 +231,13 @@ router.post('/signin', async(req, res) => {
                         knex.destroy();
                     } else {
                         start.map(async(result)=>{
-                            const ipParams = await axios.get("https://freeipapi.com/api/json/"+getIp);
+                            const ipParams = await axios.get("https://freeipapi.com/api/json/"+getIp,{
+                                headers: {
+                                  'Cache-Control': 'no-cache',
+                                  'Pragma': 'no-cache',
+                                  'Expires': '0',
+                                },
+                            });
                             const ipInfo = JSON.stringify({ip:getIp,countryName:ipParams.data.countryName,countryCode:ipParams.data.countryCode,cityName:ipParams.data.cityName,reqionName:ipParams.data.reqionName});
                             const {v4: uuidv4} = require('uuid');
                             const data = String(Date.now());
@@ -318,6 +324,7 @@ router.post('/verify-email',async(req,res)=>{
             const start = await knex.select("name","surname","avatar","uuid","email").where({email:uid,client:client}).from("users");
             if(start.length === 0) {
                 res.sendStatus(404);
+                knex.destroy();
             } else {
                 let name,surname,avatar,uuid,email;
                 start.map(e=>{name=e.name;surname=e.surname;avatar=e.avatar;uuid=e.uuid;email=e.email;});
@@ -330,8 +337,8 @@ router.post('/verify-email',async(req,res)=>{
                 const portCheck = req.hostname==='localhost'?':'+process.env.PORT:"";
                 const avatarResult = client==="okki"?httpCheck+req.hostname+portCheck+avatar:avatar;
                 timerStart(res.json({success:true,name:aes.encrypt(nameResult),surname:aes.encrypt(surnameResult),avatar:aes.encrypt(avatarResult),email:aes.encrypt(email)}));
+                knex.destroy();
             }
-            knex.destroy();
         }
     } catch(e) {
         console.log('\x1b[31m%s\x1b[0m',"/verify-email - Mistake, mistake is ");
