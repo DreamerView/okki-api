@@ -50,7 +50,7 @@ router.get('/get-devices',authToken,async(req,res)=>{
         if(uuid!==undefined || uuid!==null) {
             const knex = require('knex')(require('../knex/user'));
             const result = await knex.select('clientId','clientInfo','getTime','ipInfo').from(uuid+"_usersToken");
-            res.json({clientId:req.uid.clientId,result:result});
+            res.status(200).json({clientId:req.uid.clientId,result:result});
             knex.destroy();
         } else return timerStart(res.sendStatus(406));
     } catch(e) {
@@ -75,7 +75,7 @@ router.get('/get-data',authToken,async(req,res)=>{
             const httpCheck = req.hostname==='localhost'?'http://':"https://";
             const portCheck = req.hostname==='localhost'?':'+process.env.PORT:"";
             const avatarResult = clientUser==="okki"?httpCheck+req.hostname+portCheck+avatarUser:avatarUser;
-            res.json({name:aes.encrypt(nameUser),surname:aes.encrypt(surnameUser),data:aes.encrypt(dataUser),avatar:aes.encrypt(avatarResult),login:aes.encrypt(loginUser)});
+            res.status(200).json({name:aes.encrypt(nameUser),surname:aes.encrypt(surnameUser),data:aes.encrypt(dataUser),avatar:aes.encrypt(avatarResult),login:aes.encrypt(loginUser)});
         } else return timerStart(res.sendStatus(406));
     } catch(e) {
         console.log('\x1b[31m%s\x1b[0m',"/get-data - Mistake, mistake is ");

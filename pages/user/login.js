@@ -8,7 +8,7 @@ const router = express.Router();
 const axios = require('axios');
 
 const timerStart = (event) => {
-    return setTimeout(()=>event,[500]);
+    return setTimeout(()=>event,[1000]);
 };
 
 const generatePassword = () => {
@@ -100,7 +100,7 @@ router.post('/signin-with-socialnetwork',async(req,res)=>{
         if(email!==undefined) {
             if(social.includes(client)) {
                 const knex = require('knex')(require('../knex/user'));
-                const getClient = await knex.select("uuid").where({email:email,client:client}).from("users");
+                const getClient = await knex.select("uuid").where({social_id:email,client:client}).from("users");
                 if(JSON.stringify(getClient)==="[]") {
                     const ipParams = await axios.get("https://freeipapi.com/api/json/"+getIp);
                     const ipInfo = JSON.stringify({ip:getIp,countryName:ipParams.data.countryName,countryCode:ipParams.data.countryCode,cityName:ipParams.data.cityName,reqionName:ipParams.data.reqionName});
@@ -119,7 +119,7 @@ router.post('/signin-with-socialnetwork',async(req,res)=>{
                     const loginResult = aes256({key:keyCrypto,method:"enc",text:loginUser});
                     const nameResult = aes256({key:keyCrypto,method:"enc",text:name});
                     const surnameResult = aes256({key:keyCrypto,method:"enc",text:surname});
-                    const usersStart = await knex('users').insert({uuid:uuid,login:loginResult,email:email,password:null,name:nameResult,surname:surnameResult,data:data,avatar:image,client:client});
+                    const usersStart = await knex('users').insert({uuid:uuid,login:loginResult,email:null,social_id:email,password:null,name:nameResult,surname:surnameResult,data:data,avatar:image,client:client});
                         await knex('usersKey').insert({uuid:uuid,keyCrypto:keyCrypto});
                         if (!(await knex.schema.hasTable(uuid+'_usersToken'))) {
                             await knex.schema.createTable(uuid+'_usersToken', function(table) {

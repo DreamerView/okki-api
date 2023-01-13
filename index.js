@@ -9,6 +9,7 @@ const whitelist = mode === "dev"?['http://localhost:3000','http://localhost:3001
 //
 
 // Library 
+const compression = require('compression');
 const express = require('express');
 const app = express();
 const http = require('http');
@@ -18,6 +19,27 @@ const cors = require('cors');
 const helmet = require('helmet');
 //
 
+const shouldCompress = (req, res) => {
+    if (req.headers['x-no-compression']) {
+     return false;
+    }
+    return compression.filter(req, res);
+};
+const exceptions = ['.js', '.css', '.ico', '.jpg', '.jpeg', '.png', '.gif', '.tiff', '.tif', '.bmp', '.svg', '.ttf', '.eot', '.woff', '.php', '.xml', '.xsl','.json'];
+const setCache = function (req, res, next) {
+  const period = 1 * 24 * 60 * 60 * 1000;
+  if(!exceptions.some(v => req.url.includes(v))){
+    res.contentType('application/json;charset=utf-8');
+  }
+  if (req.method == 'GET') {
+    res.set('Cache-control', `public, max-age=${period}`);
+  } else {
+    res.set('Cache-control', `no-store`);
+  }
+  next();
+}
+app.use(compression({ filter: shouldCompress, threshold: 0 }));
+app.use(setCache)
 const corsOptions = {
     origin: whitelist,
     allowedHeaders: 'Content-Type, Authorization,WWW-Authenticate,Accept,Origin',
@@ -25,7 +47,7 @@ const corsOptions = {
     optionsSuccessStatus: 200,
     credentials:true
 };
-app.set('trust proxy', true)
+app.set('trust proxy', true);
 app.use(express.static('public')); 
 app.use('/images', express.static('images'));
 app.use(cors(corsOptions));
@@ -108,6 +130,6 @@ app.use((err, req, res,next) => {
     return res.sendStatus(500);
 });
 
-server.listen(PORT,()=>{
+app.listen(PORT,()=>{
     console.log('\x1b[33m%s\x1b[0m',"Server is running on port "+PORT);
 });
