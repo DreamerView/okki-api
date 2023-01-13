@@ -11,7 +11,7 @@ const user = {
     },
     pool: {
       min: 0,
-      max: 7
+      max: 5000
     }
 };
 
