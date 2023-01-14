@@ -47,9 +47,9 @@ const corsOptions = {
     optionsSuccessStatus: 200,
     credentials:true
 };
-app.set('trust proxy', true);
 app.use(express.static('public')); 
 app.use('/images', express.static('images'));
+app.set('trust proxy', true);
 app.use(cors(corsOptions));
 app.use(helmet());
 app.disable('x-powered-by');
@@ -60,10 +60,12 @@ app.use((req, res, next) => {
     const httpStatus = req.protocol;
     if(originStatus!==undefined) {
         if (!www&&httpStatus===modeStatus&&originStatus.includes(whitelist)) {
+            console.log('das')
             return res.sendStatus(403);
         }
         else {
             if(www===process.env.authHeader) {
+                console.log('connected!');
                 next();
             } else {
                 console.log('\x1b[31m%s\x1b[0m',"Someone tried to fetch backend");

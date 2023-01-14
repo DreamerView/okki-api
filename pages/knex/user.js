@@ -1,4 +1,4 @@
-require('dotenv').config("../../.env");
+require('dotenv').config();
 const user = {
     client: 'mysql2',
     connection: {
@@ -7,12 +7,13 @@ const user = {
       user : process.env.DATABASE_USER,
       password : process.env.DATABASE_PASSWORD,
       database : process.env.DATABASE_NAME_USERS,
-      charset: "utf8"
     },
-    pool: {
-      min: 0,
-      max: 5000
-    }
+    pool: { min: 0, max: 7 }
 };
+const knex = require('knex')(user);
 
-module.exports = user;
+knex.raw('SELECT VERSION()').then(()=>{
+  console.log('connection to db successfully!')
+});
+
+module.exports = knex;
