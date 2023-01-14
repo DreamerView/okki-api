@@ -5,7 +5,7 @@ require('dotenv').config();
 const mode = process.env.MODE; //(Choose: pro/dev) pro - producation or dev - development
 const PORT = process.env.PORT || 3001;
 const connectSocket = "http://localhost:3000";
-const whitelist = mode === "dev"?['http://localhost:3000','http://localhost:3001']:['https://okki.kz','https://zhenil-next.vercel.app'];
+const whitelist = mode === "dev"?['http://localhost:3000','http://localhost:3001']:['https://okki.kz','https://okki.vercel.app'];
 //
 
 // Library 
