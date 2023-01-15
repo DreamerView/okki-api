@@ -43,7 +43,7 @@ router.get('/get-devices',authToken,async(req,res)=>{
         const uuid = req.uid.uuid;
         console.time("/get-devices finished with");
         if(uuid!==undefined && uuid!==null) {
-            const result = await knex.select('clientId','clientInfo','getTime','ipInfo').from(uuid+"_usersToken");
+            const result = await knex(uuid+"_usersToken").select('clientId','clientInfo','getTime','ipInfo');
             res.status(200).json({clientId:req.uid.clientId,result:result});
         } else return timerStart(res.sendStatus(406));
         console.timeEnd("/get-devices finished with");
@@ -60,7 +60,7 @@ router.get('/get-data',authToken,async(req,res)=>{
         const uuid = req.uid.uuid;
         if(uuid!==undefined && uuid!==null) {
             let cryptoKey,nameUser,surnameUser,dataUser,avatarUser,loginUser,clientUser;
-            const getCrypto = await knex.select('keyCrypto').from("usersKey").where({uuid:uuid}),getDatabase = await knex.select("name","surname","data","avatar","login","client").from("users").where("uuid",uuid);
+            const getCrypto = await knex("usersKey").select('keyCrypto').where({uuid:uuid}),getDatabase = await knex("users").select("name","surname","data","avatar","login","client").where("uuid",uuid);
             getCrypto.map(result=>cryptoKey=result.keyCrypto);
             getDatabase.map(result=>{nameUser=aes256({key:cryptoKey,method:"dec",text:result.name});surnameUser=aes256({key:cryptoKey,method:"dec",text:result.surname});dataUser=result.data;avatarUser=result.avatar;clientUser=result.client;loginUser=aes256({key:cryptoKey,method:"dec",text:result.login});});
             const httpCheck = req.hostname==='localhost'?'http://':"https://",portCheck = req.hostname==='localhost'?':'+process.env.PORT:"",avatarResult = clientUser==="okki"?httpCheck+req.hostname+portCheck+avatarUser:avatarUser;

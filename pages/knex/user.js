@@ -8,6 +8,7 @@ const user = {
       user : process.env.DATABASE_USER,
       password : process.env.DATABASE_PASSWORD,
       database : process.env.DATABASE_NAME_USERS,
+      multipleStatements: true
     },
     pool: { min: 0, max: 7 }
 };
