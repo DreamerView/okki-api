@@ -28,13 +28,13 @@ const timerStart = (event) => {
 
 const authToken = async(req,res,next) => {
     console.time('user/index jwt-token-update');
-    const authHeader = req.headers.authorization,getToken = authHeader && authHeader.split(" ")[1],getClientId = authHeader && authHeader.split(" ")[2],token = aes.decrypt(getToken),clientId = aes.decrypt(getClientId),getTokens = await knex.select("accessToken").where({clientId:clientId}).from("usersToken");
+    const authHeader = req.headers.authorization,getToken = authHeader && authHeader.split(" ")[1],getClientId = authHeader && authHeader.split(" ")[2],token = aes.decrypt(getToken),clientId = aes.decrypt(getClientId),getTokens = await knex.raw('select `accessToken` from `usersToken` where clientId="'+clientId+'"');
     if(JSON.stringify(getTokens)==="[]") return timerStart(res.sendStatus(409));
     if(token===null) return timerStart(res.sendStatus(409));
     jwt.verify(token,process.env.ACCESS_TOKEN,async(err,uid)=>{
         if(err) return timerStart(res.sendStatus(406));
         req.uid = uid;
-        next();
+        return next();
     });
     console.timeEnd('user/index jwt-token-update');
 };
