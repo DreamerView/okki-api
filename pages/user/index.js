@@ -32,15 +32,14 @@ const timerStart = (event) => {
 const authToken = async(req,res,next) => {
     console.time('user/index jwt-token-update');
     const authHeader = String(req.headers.authorization),getToken = authHeader && authHeader.split(" ")[1],getClientId = authHeader && authHeader.split(" ")[2],token = aes.decrypt(getToken),clientId = aes.decrypt(getClientId);
-    connection.execute('SELECT `accessToken` FROM `usersToken` WHERE `clientId` LIKE ? LIMIT 1',[clientId],(err, results, fields) => {
-        console.log(results)
-        // if(JSON.stringify(results)==="[]"||err) return timerStart(res.sendStatus(409)); 
-    });
-    if(token===null) return timerStart(res.sendStatus(409));
-    jwt.verify(token,process.env.ACCESS_TOKEN,async(err,uid)=>{
-        if(err) return timerStart(res.sendStatus(406));
-        req.uid = uid;
-        return next();
+    connection.execute('SELECT `accessToken` FROM `usersToken` WHERE `clientId` = ? LIMIT 1',[clientId],(err, results, fields) => {
+        if(results.length===0) return timerStart(res.sendStatus(409));
+        if(token===null) return timerStart(res.sendStatus(409));
+        jwt.verify(token,process.env.ACCESS_TOKEN,async(err,uid)=>{
+            if(err) return timerStart(res.sendStatus(406));
+            req.uid = uid;
+            return next();
+        });
     });
     console.timeEnd('user/index jwt-token-update');
 };
@@ -48,7 +47,7 @@ const authToken = async(req,res,next) => {
 router.get('/verify-user',authToken,async(req,res)=>{
     try {
         const uuid = req.uid.uuid;
-        if(uuid!==undefined && uuid!==null) {
+        if(uuid!==undefined || uuid!==null) {
             return connection.execute('SELECT `uuid` FROM `users` WHERE `uuid` LIKE ? LIMIT 1',[uuid],(err, results, fields) => {
                 if(results.length===0) return res.sendStatus(409);
                 if(err) return res.sendStatus(409);
@@ -65,10 +64,12 @@ router.get('/verify-user',authToken,async(req,res)=>{
 router.get('/get-devices',authToken,async(req,res)=>{
     try {
         const uuid = String(req.uid.uuid);
+        console.log(uuid);
         console.time("/get-devices finished with");
-        if(uuid!==undefined && uuid!==null) {
+        if(uuid!==undefined || uuid!==null) {
             connection.execute('SELECT `clientId`,`clientInfo`,`getTime`,`ipInfo` FROM `'+uuid+'_usersToken`',(err, results, fields) => {
-                return res.status(200).json({clientId:req.uid.clientId,result:results}); 
+                if(err) res.sendStatus(409);
+                else if(results) return res.status(200).json({clientId:req.uid.clientId,result:results}); 
             });
             console.timeEnd("/get-devices finished with");
         } else return timerStart(res.sendStatus(409));
@@ -83,8 +84,11 @@ router.get('/get-data',authToken,async(req,res)=>{
     try {
         console.time('/get-data finished with');
         const uuid = String(req.uid.uuid);
-        if(uuid!==undefined && uuid!==null) {
+        if(uuid!==undefined || uuid!==null) {
             let cryptoKey,nameUser,surnameUser,dataUser,avatarUser,loginUser,clientUser;
+            connection.execute('select `keyCrypto` from `usersKey` WHERE uuid= ? LIMIT 1',[uuid],(err, results, fields) => {
+                
+            })
             const getCrypto = await knex.raw("select `keyCrypto` from `usersKey` WHERE uuid='"+uuid+"'"),getDatabase = await knex.raw('select `name`,`surname`,`data`,`avatar`,`login`,`client` from `users` where uuid="'+uuid+'"');
             // console.log(getCrypto)
             getCrypto[0].map(result=>cryptoKey=result.keyCrypto);
