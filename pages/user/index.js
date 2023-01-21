@@ -31,7 +31,7 @@ const timerStart = (event) => {
 const authToken = async(req,res,next) => {
     console.time('user/index jwt-token-update');
     const authHeader = String(req.headers.authorization),getToken = authHeader && authHeader.split(" ")[1],getClientId = authHeader && authHeader.split(" ")[2],token = aes.decrypt(getToken),clientId = aes.decrypt(getClientId);
-    connection.execute('SELECT `accessToken` FROM `usersToken` WHERE `clientId` LIKE ? LIMIT 1',[clientId],(err, results, fields) => {
+    connection.execute('SELECT `accessToken` FROM `usersToken` WHERE `clientId` = ? LIMIT 1',[clientId],(err, results, fields) => {
         if(results.length===0) return timerStart(res.sendStatus(409));
         if(token===null) return timerStart(res.sendStatus(409));
         jwt.verify(token,process.env.ACCESS_TOKEN,async(err,uid)=>{
@@ -45,14 +45,16 @@ const authToken = async(req,res,next) => {
 
 router.get('/verify-user',authToken,async(req,res)=>{
     try {
+        console.time('/verify-user finished with');
         const uuid = req.uid.uuid;
-        if(uuid!==undefined || uuid!==null) {
+        if(uuid!==undefined || uuid!==null)
             return connection.execute('SELECT `uuid` FROM `users` WHERE `uuid` LIKE ? LIMIT 1',[uuid],(err, results, fields) => {
                 if(results.length===0) return res.sendStatus(409);
                 if(err) return res.sendStatus(409);
+                console.timeEnd('/verify-user finished with');
                 return res.status(200).json({uuid:uuid}); 
             });
-        } else return timerStart(res.sendStatus(409));
+        else return timerStart(res.sendStatus(409));
     } catch(e) {
         console.log('\x1b[31m%s\x1b[0m',"/verify-user - Mistake, mistake is ");
         console.log(e);
@@ -88,10 +90,10 @@ router.get('/get-data',authToken,async(req,res)=>{
                 if(results.length===0) return res.sendStatus(409);
                 results.map(event=>{
                     const cryptoKey = event.keyCrypto;
-                    connection.execute('select `name`,`surname`,`data`,`avatar`,`login`,`client` from `users` where uuid=? LIMIT 1',[uuid],(err, results, fields) => {
+                    connection.execute('select `name`,`surname`,`data`,`avatar`,`login` from `users` where uuid=? LIMIT 1',[uuid],(err, results, fields) => {
                         results.map(result=>{
-                            const nameUser=aes256({key:cryptoKey,method:"dec",text:result.name}),surnameUser=aes256({key:cryptoKey,method:"dec",text:result.surname}),dataUser=result.data,avatarUser=result.avatar,clientUser=result.client,loginUser=aes256({key:cryptoKey,method:"dec",text:result.login});
-                            const httpCheck = req.hostname==='localhost'?'http://':"https://",portCheck = req.hostname==='localhost'?':'+process.env.PORT:"",avatarResult = clientUser==="okki"?httpCheck+req.hostname+portCheck+avatarUser:avatarUser;
+                            const nameUser=aes256({key:cryptoKey,method:"dec",text:result.name}),surnameUser=aes256({key:cryptoKey,method:"dec",text:result.surname}),dataUser=result.data,avatarUser=result.avatar,loginUser=aes256({key:cryptoKey,method:"dec",text:result.login});
+                            const httpCheck = req.hostname==='localhost'?'http://':"https://",portCheck = req.hostname==='localhost'?':'+process.env.PORT:"",avatarResult = avatarUser.slice(0,5)!=="https"?httpCheck+req.hostname+portCheck+avatarUser:avatarUser;
                             return res.status(200).json({name:aes.encrypt(nameUser),surname:aes.encrypt(surnameUser),data:aes.encrypt(dataUser),avatar:aes.encrypt(avatarResult),login:aes.encrypt(loginUser)});
                         })
                     })
