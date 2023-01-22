@@ -83,7 +83,7 @@ const authToken = async(req,res,next) => {
 };
 
 router.post('/register-socialnetwork',async(req,res)=>{
-    const social = ['Google'],hasEmail = ['Google'];
+    const social = ['google'],hasEmail = ['google'];
         const password = aes.decrypt(req.body.password), socialId =  aes.decrypt(req.body.socialId),all = aes.decrypt(req.body.name),image = aes.decrypt(req.body.image),client = aes.decrypt(req.body.client),name = all.split(" ")[0]===undefined||all.split(" ")[0]===null?" ":all.split(" ")[0],surname = all.split(" ")[1]===undefined||all.split(" ")[1]===null?" ":all.split(" ")[1],clientInfo = aes.decrypt(req.body.clientInfo),getIp = aes.decrypt(req.body.getIp),email = aes.decrypt(req.body.email);
         console.log(name+" "+surname);
         if(socialId!==undefined) {
@@ -128,7 +128,7 @@ router.post('/register-socialnetwork',async(req,res)=>{
 
 router.post('/signin-with-socialnetwork',async(req,res)=>{
     try {
-        const social = ['Google','VK'],hasEmail = ['Google'];
+        const social = ['google','vk'],hasEmail = ['google'];
         const socialId =  aes.decrypt(req.body.socialId),all = aes.decrypt(req.body.name),image = aes.decrypt(req.body.image),client = aes.decrypt(req.body.client),name = all.split(" ")[0]===undefined||all.split(" ")[0]===null?" ":all.split(" ")[0],surname = all.split(" ")[1]===undefined||all.split(" ")[1]===null?" ":all.split(" ")[1],clientInfo = aes.decrypt(req.body.clientInfo),getIp = aes.decrypt(req.body.getIp),email = aes.decrypt(req.body.email);
         console.log(name+" "+surname);
         if(socialId!==undefined) {
