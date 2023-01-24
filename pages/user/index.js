@@ -48,7 +48,7 @@ router.get('/verify-user',authToken,async(req,res)=>{
         console.time('/verify-user finished with');
         const uuid = req.uid.uuid;
         if(uuid!==undefined || uuid!==null)
-            return connection.execute('SELECT `uuid` FROM `users` WHERE `uuid` LIKE ? LIMIT 1',[uuid],(err, results, fields) => {
+            return connection.execute('SELECT `uuid` FROM `users` WHERE `uuid` = ? LIMIT 1',[uuid],(err, results, fields) => {
                 if(results.length===0) return res.sendStatus(409);
                 if(err) return res.sendStatus(409);
                 console.timeEnd('/verify-user finished with');

@@ -83,47 +83,48 @@ const authToken = async(req,res,next) => {
 };
 
 router.post('/register-socialnetwork',async(req,res)=>{
-    const social = ['google'],hasEmail = ['google'];
         const password = aes.decrypt(req.body.password), socialId =  aes.decrypt(req.body.socialId),all = aes.decrypt(req.body.name),image = aes.decrypt(req.body.image),client = aes.decrypt(req.body.client),name = all.split(" ")[0]===undefined||all.split(" ")[0]===null?" ":all.split(" ")[0],surname = all.split(" ")[1]===undefined||all.split(" ")[1]===null?" ":all.split(" ")[1],clientInfo = aes.decrypt(req.body.clientInfo),getIp = aes.decrypt(req.body.getIp),email = aes.decrypt(req.body.email);
         console.log(name+" "+surname);
         if(socialId!==undefined) {
+            const getEmail = await knex.select("email").where({email:email}).from("users");
+            if(getEmail.length!==0) return res.sendStatus(404);
             console.log(socialId+" "+password+" "+email);
-    const ipParams = await axios.get("https://freeipapi.com/api/json/"+getIp);
-    const ipInfo = JSON.stringify({ip:getIp,countryName:ipParams.data.countryName,countryCode:ipParams.data.countryCode,cityName:ipParams.data.cityName,reqionName:ipParams.data.reqionName});
-    const {v4: uuidv4} = require('uuid');
-    const data = String(Date.now());
-    const uuid = data+"-"+uuidv4();
-    const clientId = data+"-"+uuidv4();
-    const keyCrypto = require('crypto').randomBytes(32).toString('hex');
-    const count = await knex('users').count('*');
-    let id;
-    count.map(result=>id=result['count(*)']);
-    const newId = Number(id)+1;
-    const loginUser = "user-"+newId;
-    const accessTokenGeneration = generateAccessToken({uuid:uuid,clientId:clientId});
-    const refreshTokenGeneration = generateRefreshToken({uuid:uuid,clientId:clientId});
-    const loginResult = aes256({key:keyCrypto,method:"enc",text:loginUser});
-    const nameResult = aes256({key:keyCrypto,method:"enc",text:name});
-    const surnameResult = aes256({key:keyCrypto,method:"enc",text:surname});
-    const passwordResult = aes256({key:keyCrypto,method:"enc",text:password});
-                    const usersStart = await knex('users').insert({uuid:uuid,login:loginResult,email:email,social_id:socialId,password:passwordResult,name:nameResult,surname:surnameResult,data:data,avatar:image,client:client});
-                    const socialStart = await knex('socialNetwork').insert({uuid:uuid,socialId:socialId,clientId:client});
-                        await knex('usersKey').insert({uuid:uuid,keyCrypto:keyCrypto});
-                        if (!(await knex.schema.hasTable(uuid+'_usersToken'))) {
-                            await knex.schema.createTable(uuid+'_usersToken', function(table) {
-                                table.string('clientId').primary();
-                                table.text('getTime');
-                                table.text('ipInfo');
-                                table.text('clientInfo');
-                                table.text('accessToken');
-                                table.text('refreshToken');
-                            });
-                        }
-                        await knex(uuid+'_usersToken').insert({clientId:clientId,getTime:data,ipInfo:ipInfo,clientInfo:clientInfo,accessToken:accessTokenGeneration,refreshToken:refreshTokenGeneration});
-                        await knex('usersToken').insert({uuid:uuid,clientId:clientId,accessToken:accessTokenGeneration,refreshToken:refreshTokenGeneration});
-                        timerStart(JSON.stringify(usersStart)!=="[]"&&res.json({success:true,accessToken:aes.encrypt(accessTokenGeneration),name:aes.encrypt(name),surname:aes.encrypt(surname),avatar:aes.encrypt(image),clientId:aes.encrypt(clientId)}));
-                        console.log('\x1b[32m%s\x1b[0m',"№"+newId+") Registered new user "+socialId);
-                    }
+            const ipParams = await axios.get("https://freeipapi.com/api/json/"+getIp);
+            const ipInfo = JSON.stringify({ip:getIp,countryName:ipParams.data.countryName,countryCode:ipParams.data.countryCode,cityName:ipParams.data.cityName,reqionName:ipParams.data.reqionName});
+            const {v4: uuidv4} = require('uuid');
+            const data = String(Date.now());
+            const uuid = data+"-"+uuidv4();
+            const clientId = data+"-"+uuidv4();
+            const keyCrypto = require('crypto').randomBytes(32).toString('hex');
+            const count = await knex('users').count('*');
+            let id;
+            count.map(result=>id=result['count(*)']);
+            const newId = Number(id)+1;
+            const loginUser = "user-"+newId;
+            const accessTokenGeneration = generateAccessToken({uuid:uuid,clientId:clientId});
+            const refreshTokenGeneration = generateRefreshToken({uuid:uuid,clientId:clientId});
+            const loginResult = aes256({key:keyCrypto,method:"enc",text:loginUser});
+            const nameResult = aes256({key:keyCrypto,method:"enc",text:name});
+            const surnameResult = aes256({key:keyCrypto,method:"enc",text:surname});
+            const passwordResult = aes256({key:keyCrypto,method:"enc",text:password});
+            const usersStart = await knex('users').insert({uuid:uuid,login:loginResult,email:email,social_id:socialId,password:passwordResult,name:nameResult,surname:surnameResult,data:data,avatar:image,client:client});
+            const socialStart = await knex('socialNetwork').insert({uuid:uuid,socialId:socialId,clientId:client});
+            await knex('usersKey').insert({uuid:uuid,keyCrypto:keyCrypto});
+            if (!(await knex.schema.hasTable(uuid+'_usersToken'))) {
+                await knex.schema.createTable(uuid+'_usersToken', function(table) {
+                    table.string('clientId').primary();
+                    table.text('getTime');
+                    table.text('ipInfo');
+                    table.text('clientInfo');
+                    table.text('accessToken');
+                    table.text('refreshToken');
+                });
+            }
+            await knex(uuid+'_usersToken').insert({clientId:clientId,getTime:data,ipInfo:ipInfo,clientInfo:clientInfo,accessToken:accessTokenGeneration,refreshToken:refreshTokenGeneration});
+            await knex('usersToken').insert({uuid:uuid,clientId:clientId,accessToken:accessTokenGeneration,refreshToken:refreshTokenGeneration});
+            timerStart(JSON.stringify(usersStart)!=="[]"&&res.json({success:true,accessToken:aes.encrypt(accessTokenGeneration),name:aes.encrypt(name),surname:aes.encrypt(surname),avatar:aes.encrypt(image),clientId:aes.encrypt(clientId)}));
+            console.log('\x1b[32m%s\x1b[0m',"№"+newId+") Registered new user "+socialId);
+        }
 });
 
 router.post('/signin-with-socialnetwork',async(req,res)=>{

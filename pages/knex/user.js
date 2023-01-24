@@ -1,5 +1,5 @@
 require('dotenv').config();
-console.time('database connected in');
+console.time('Knex connected in');
 const user = {
     client: 'mysql2',
     connection: {
@@ -15,7 +15,7 @@ const user = {
 const knex = require('knex')(user);
 
 knex.raw('SELECT VERSION()').then(()=>{
-  console.log('connection to db successfully!')
+  console.log('\x1b[35m%s\x1b[0m','Knex connected to Database!')
 });
-console.timeEnd('database connected in');
+console.timeEnd('Knex connected in');
 module.exports = knex;
